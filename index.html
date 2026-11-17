@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>房贷测算台 · 等额本息 / 等额本金 / 组合贷 / 提前结清</title>
+<meta name="description" content="根据当前 LPR 与公积金利率，测算等额本息与等额本金的月度本金利息、组合贷合并月供，以及任意年份提前结清的总支出与省息。" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/app.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 10.5 12 3l9 7.5" />
+        <path d="M5 9.5V21h14V9.5" />
+        <path d="M9.5 21v-6h5v6" />
+      </svg>
+      <div class="brand-text">
+        <h1>房贷测算台</h1>
+        <p>等额本息 · 等额本金 · 组合贷 · 提前结清</p>
+      </div>
+    </div>
+    <div class="baseline" id="baseline-note">
+      <span class="baseline-dot" aria-hidden="true"></span>
+      <span>5 年期以上 LPR <strong class="num">3.50%</strong> · 公积金首套 <strong class="num">2.60%</strong></span>
+    </div>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ============================ 输入面板 ============================ -->
+  <aside class="panel-input">
+    <form id="loan-form" novalidate>
+
+      <div class="field-group">
+        <label class="field-label">贷款构成</label>
+        <div class="segmented" role="radiogroup" aria-label="贷款构成">
+          <button type="button" class="seg-btn" data-mode="commercial" role="radio" aria-checked="true">纯商贷</button>
+          <button type="button" class="seg-btn" data-mode="fund" role="radio" aria-checked="false">纯公积金</button>
+          <button type="button" class="seg-btn" data-mode="combo" role="radio" aria-checked="false">组合贷</button>
+        </div>
+      </div>
+
+      <!-- 商业贷款块 -->
+      <section class="loan-block" data-block="commercial">
+        <div class="loan-block-head">
+          <span class="tag tag-commercial">商业贷款</span>
+          <span class="loan-share num" data-share="commercial"></span>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="commercial-amount">贷款金额</label>
+          <div class="input-wrap">
+            <input id="commercial-amount" class="input num" type="number" inputmode="decimal" step="0.5" min="0" value="100" data-amount="commercial" />
+            <span class="input-suffix">万元</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="commercial-rate">年利率</label>
+          <div class="input-wrap">
+            <input id="commercial-rate" class="input num" type="number" inputmode="decimal" step="0.01" min="0" value="3.05" data-rate="commercial" />
+            <span class="input-suffix">%</span>
+          </div>
+          <p class="rate-hint" data-rate-hint="commercial"></p>
+          <div class="chips" data-presets="commercial"></div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="commercial-method">还款方式</label>
+          <select id="commercial-method" class="select" data-method="commercial">
+            <option value="equal-payment">等额本息（月供固定）</option>
+            <option value="equal-principal">等额本金（月供递减）</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- 公积金块 -->
+      <section class="loan-block" data-block="fund" hidden>
+        <div class="loan-block-head">
+          <span class="tag tag-fund">住房公积金</span>
+          <span class="loan-share num" data-share="fund"></span>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="fund-amount">贷款金额</label>
+          <div class="input-wrap">
+            <input id="fund-amount" class="input num" type="number" inputmode="decimal" step="0.5" min="0" value="60" data-amount="fund" />
+            <span class="input-suffix">万元</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="fund-rate">年利率</label>
+          <div class="input-wrap">
+            <input id="fund-rate" class="input num" type="number" inputmode="decimal" step="0.005" min="0" value="2.6" data-rate="fund" />
+            <span class="input-suffix">%</span>
+          </div>
+          <p class="rate-hint" data-rate-hint="fund"></p>
+          <div class="chips" data-presets="fund"></div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="fund-method">还款方式</label>
+          <select id="fund-method" class="select" data-method="fund">
+            <option value="equal-payment">等额本息（月供固定）</option>
+            <option value="equal-principal">等额本金（月供递减）</option>
+          </select>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <div class="field">
+        <label class="field-label" for="term-years">贷款期限</label>
+        <div class="term-row">
+          <div class="input-wrap input-wrap-sm">
+            <input id="term-years" class="input num" type="number" inputmode="numeric" step="1" min="1" max="30" value="30" data-term />
+            <span class="input-suffix">年</span>
+          </div>
+          <div class="chips chips-inline">
+            <button type="button" class="chip" data-term-preset="10">10 年</button>
+            <button type="button" class="chip" data-term-preset="20">20 年</button>
+            <button type="button" class="chip" data-term-preset="30">30 年</button>
+          </div>
+        </div>
+        <p class="field-note" id="total-amount-note"></p>
+      </div>
+
+      <details class="advanced">
+        <summary>
+          <span>提前结清条件</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        </summary>
+        <div class="advanced-body">
+          <div class="field">
+            <label class="field-label" for="penalty-rate">违约金比例</label>
+            <div class="input-wrap">
+              <input id="penalty-rate" class="input num" type="number" inputmode="decimal" step="0.1" min="0" max="10" value="0" data-penalty-rate />
+              <span class="input-suffix">%</span>
+            </div>
+            <p class="field-note">对结清时的剩余本金计收。多数银行满 1 年后免收，可填 0 表示不计。</p>
+          </div>
+          <div class="field">
+            <label class="field-label" for="penalty-free">免罚期</label>
+            <div class="input-wrap">
+              <input id="penalty-free" class="input num" type="number" inputmode="numeric" step="1" min="0" max="120" value="12" data-penalty-free />
+              <span class="input-suffix">期后免收</span>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <p class="form-error" id="form-error" role="alert" hidden></p>
+    </form>
+  </aside>
+
+  <!-- ============================ 结果区 ============================ -->
+  <section class="results" id="results" aria-live="polite">
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="split-note" id="split-note" hidden></div>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab is-active" data-tab="schedule" role="tab" aria-selected="true">还款计划</button>
+      <button class="tab" data-tab="payoff" role="tab" aria-selected="false">提前结清</button>
+      <button class="tab" data-tab="compare" role="tab" aria-selected="false">方式对比</button>
+    </nav>
+
+    <!-- 还款计划 -->
+    <div class="tab-panel is-active" data-panel="schedule">
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2>本金与利息构成</h2>
+            <p class="card-sub">按年度汇总，蓝色为本金、琥珀色为利息</p>
+          </div>
+          <div class="legend">
+            <span class="legend-item"><i class="dot dot-principal"></i>本金</span>
+            <span class="legend-item"><i class="dot dot-interest"></i>利息</span>
+          </div>
+        </div>
+        <div class="chart-box" id="chart-composition"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2>月度还款明细</h2>
+            <p class="card-sub" id="schedule-sub"></p>
+          </div>
+          <div class="view-toggle">
+            <button class="mini-btn is-active" data-schedule-view="year">按年</button>
+            <button class="mini-btn" data-schedule-view="month">逐月</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table" id="schedule-table">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <button type="button" class="more-btn" id="schedule-more" hidden>展开更多</button>
+      </section>
+    </div>
+
+    <!-- 提前结清 -->
+    <div class="tab-panel" data-panel="payoff">
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2>在第 N 年一次性结清，总共要花多少钱</h2>
+            <p class="card-sub">蓝色为按原计划还到期，绿色为在第 N 年末结清的累计支出；两条线的差值就是省下的利息</p>
+          </div>
+        </div>
+        <div class="chart-box chart-box-tall" id="chart-payoff"></div>
+      </section>
+
+      <section class="card card-emphasis" id="payoff-highlight"></section>
+
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2>逐年结清测算</h2>
+            <p class="card-sub">「结清现金」是当天要一次性付的钱；「全周期支出」是从放款到结清一共花掉的钱</p>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table" id="payoff-table">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- 方式对比 -->
+    <div class="tab-panel" data-panel="compare">
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2>等额本息 vs 等额本金</h2>
+            <p class="card-sub">同一笔贷款、同一利率与期限下的两条路径（组合贷按两笔同时切换计算）</p>
+          </div>
+        </div>
+        <div id="compare-body"></div>
+      </section>
+    </div>
+
+  </section>
+</main>
+
+<footer class="page-foot">
+  <p>计算结果按国内房贷实务规则生成：每期利息按剩余本金计息并四舍五入到分，末期以剩余本金兜底。仅供规划参考，以贷款行合同为准。</p>
+</footer>
+
+<script type="module" src="src/app.js"></script>
+</body>
+</html>

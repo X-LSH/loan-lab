@@ -1,0 +1,104 @@
+/* 设计令牌：浅色专业金融工具风。数值全部 tabular，避免数字跳动时抖动。 */
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface-2: #fafbfd;
+  --surface-3: #eff3f8;
+  --line: #e2e7ef;
+  --line-strong: #ccd5e1;
+
+  --ink: #0f1720;
+  --ink-2: #48546a;
+  --ink-3: #7d899c;
+
+  --brand: #4a8fe0;
+  --brand-deep: #2668b3;
+  --brand-soft: #e9f1fc;
+  --brand-ring: rgba(74, 143, 224, 0.24);
+
+  --principal: #4a8fe0;
+  --principal-soft: #dce9fa;
+  --interest: #c98a3c;
+  --interest-soft: #f7e9d4;
+  --saved: #2e8b63;
+  --saved-soft: #dff2e8;
+  --warn: #b8562f;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 32, 0.05);
+  --shadow: 0 2px 8px -2px rgba(15, 23, 32, 0.08), 0 1px 2px rgba(15, 23, 32, 0.04);
+  --shadow-lg: 0 12px 32px -12px rgba(15, 23, 32, 0.18);
+
+  --mono: "SF Mono", "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* 显式声明 display 的元素（.split-note / .more-btn）会盖掉 hidden 的默认样式，
+   这里统一兜底，避免出现"隐藏了却还占一块空白"的假象。 */
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.unit {
+  color: var(--ink-3);
+  font-size: 12px;
+}

@@ -1,0 +1,353 @@
+/**
+ * 应用入口：表单状态 -> 计算 -> 渲染。
+ * 所有金额在 UI 层以「万元」录入，进入计算内核前统一转成「分」。
+ */
+
+import { buildPlan, compareMethods, aggregateByYear } from './core/plan.js';
+import { LPR_5Y, RATE_PRESETS, FUND_PRESETS, rateToBp, fundRateFor } from './core/rates.js';
+import { renderKpis, mountPayoffHighlight, updatePayoffHighlight, renderCompare } from './ui/summary.js';
+import { renderMonthlyTable, renderYearlyTable, renderPayoffTable, renderSplitNote } from './ui/tables.js';
+import { renderStackedBars, renderPayoffChart } from './ui/charts.js';
+
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+const state = {
+  mode: 'commercial',
+  scheduleView: 'year',
+  monthlyLimit: 24,
+  selectedMonth: 120,
+};
+
+let plan = null;
+let cmp = null;
+let highlightRefs = null;
+let debounceTimer = null;
+
+/* ------------------------------------------------------------------ 读取 */
+
+const centsFromWan = (wan) => Math.round(wan * 1e6);
+
+function readNumber(selector) {
+  const raw = Number($(selector).value);
+  return Number.isFinite(raw) ? raw : NaN;
+}
+
+function readTerm() {
+  const years = Math.round(readNumber('[data-term]'));
+  if (!Number.isFinite(years) || years < 1 || years > 30) {
+    throw new Error('贷款期限需在 1 ~ 30 年之间');
+  }
+  return { years, months: years * 12 };
+}
+
+function collectLoans() {
+  const term = readTerm();
+  const loans = [];
+
+  const push = (kind, label) => {
+    const wan = readNumber(`[data-amount="${kind}"]`);
+    const ratePercent = readNumber(`[data-rate="${kind}"]`);
+    if (!Number.isFinite(wan) || wan <= 0) return;
+    if (!Number.isFinite(ratePercent) || ratePercent < 0) {
+      throw new Error(`${label}的年利率填写有误`);
+    }
+    loans.push({
+      label,
+      principal: centsFromWan(wan),
+      annualRate: ratePercent / 100,
+      method: $(`[data-method="${kind}"]`).value,
+    });
+  };
+
+  if (state.mode !== 'fund') push('commercial', '商业贷款');
+  if (state.mode !== 'commercial') push('fund', '公积金');
+
+  if (loans.length === 0) {
+    throw new Error('请至少填写一笔大于 0 的贷款金额');
+  }
+  return { loans, months: term.months, years: term.years };
+}
+
+function readPenalty() {
+  const rate = Math.max(readNumber('[data-penalty-rate]') || 0, 0) / 100;
+  const free = Math.max(Math.round(readNumber('[data-penalty-free]') || 0), 0);
+  return { penaltyRate: rate, penaltyFreeMonths: free };
+}
+
+/* ------------------------------------------------------------------ 计算 */
+
+function recompute() {
+  try {
+    const { loans, months, years } = collectLoans();
+    const { penaltyRate, penaltyFreeMonths } = readPenalty();
+
+    plan = buildPlan({ months, loans, penaltyRate, penaltyFreeMonths });
+    cmp = compareMethods({ months, loans });
+
+    const maxMonth = plan.months;
+    if (state.selectedMonth > maxMonth) state.selectedMonth = maxMonth;
+    if (state.monthlyLimit > maxMonth) state.monthlyLimit = maxMonth;
+
+    setError(null);
+    renderAll(years);
+  } catch (error) {
+    setError(error.message);
+  }
+}
+
+function setError(message) {
+  const el = $('#form-error');
+  el.hidden = !message;
+  el.textContent = message ?? '';
+}
+
+/* ------------------------------------------------------------------ 渲染 */
+
+function renderAll(years) {
+  renderKpis($('#kpis'), plan);
+  renderSplitNote($('#split-note'), plan);
+  updateTermNote(years);
+  updateShares();
+
+  if (!highlightRefs) {
+    highlightRefs = mountPayoffHighlight($('#payoff-highlight'), plan);
+    highlightRefs.slider.addEventListener('input', () => {
+      state.selectedMonth = Number(highlightRefs.slider.value);
+      updatePayoffHighlight(highlightRefs, plan, state.selectedMonth);
+      renderPayoffTable($('#payoff-table'), plan.payoff, { selectedMonth: state.selectedMonth });
+    });
+  }
+  updatePayoffHighlight(highlightRefs, plan, state.selectedMonth);
+
+  redrawCharts();
+  renderScheduleTable();
+  renderPayoffTable($('#payoff-table'), plan.payoff, { selectedMonth: state.selectedMonth });
+  renderCompare($('#compare-body'), cmp, plan);
+}
+
+function redrawCharts() {
+  renderStackedBars($('#chart-composition'), aggregateByYear(plan.merged));
+  renderPayoffChart($('#chart-payoff'), plan.payoff);
+}
+
+function renderScheduleTable() {
+  const isCombo = plan.schedules.length > 1;
+  const sub = $('#schedule-sub');
+  const moreBtn = $('#schedule-more');
+
+  if (state.scheduleView === 'year') {
+    renderYearlyTable($('#schedule-table'), aggregateByYear(plan.merged));
+    sub.textContent = `共 ${plan.months} 期，按年度汇总。「年还款合计」在等额本金下会逐年下降`;
+    moreBtn.hidden = true;
+  } else {
+    const total = renderMonthlyTable($('#schedule-table'), plan.merged, {
+      limit: state.monthlyLimit,
+      isCombo,
+    });
+    sub.textContent = isCombo
+      ? '合计列之后是每笔各自的月供，两笔的实际还款日与计息方式可能不同'
+      : `共 ${total} 期，逐期列出本金与利息`;
+    const shown = Math.min(state.monthlyLimit, total);
+    moreBtn.hidden = shown >= total;
+    moreBtn.textContent = `展开更多（已显示 ${shown} / ${total} 期）`;
+  }
+}
+
+function updateTermNote(years) {
+  const total = plan.merged.totals.principal;
+  $('#total-amount-note').textContent =
+    `合计贷款 ${(total / 1e8).toFixed(2)} 万元 · ${years} 年 · ${plan.months} 期`;
+}
+
+/** 组合贷时在每个贷款块右上角显示占比 */
+function updateShares() {
+  const total = plan.merged.totals.principal || 1;
+  for (const kind of ['commercial', 'fund']) {
+    const el = $(`[data-share="${kind}"]`);
+    if (!el) continue;
+    const match = plan.weight.find(
+      (w) => w.label === (kind === 'commercial' ? '商业贷款' : '公积金'),
+    );
+    el.textContent = match ? `占 ${(match.share * 100).toFixed(1)}%` : '';
+  }
+}
+
+/* ------------------------------------------------------------------ 利率提示 */
+
+function updateRateHints() {
+  const months = Math.round(readNumber('[data-term]')) * 12 || 360;
+
+  const commercial = readNumber('[data-rate="commercial"]');
+  const commercialHint = $('[data-rate-hint="commercial"]');
+  if (Number.isFinite(commercial)) {
+    const bp = rateToBp(commercial / 100, LPR_5Y);
+    if (Math.abs(bp) <= 300) {
+      commercialHint.textContent =
+        bp === 0
+          ? '等于 5 年期以上 LPR 基准 3.50%'
+          : `相当于 LPR 3.50% ${bp > 0 ? '加' : '减'} ${Math.abs(bp)} 个基点（${bp > 0 ? '+' : '−'}${Math.abs(bp)}BP）`;
+    } else {
+      commercialHint.textContent = '按固定年利率计算，与当前 LPR 偏离较大';
+    }
+  }
+
+  const fund = readNumber('[data-rate="fund"]');
+  const fundHint = $('[data-rate-hint="fund"]');
+  if (Number.isFinite(fund)) {
+    const base = fundRateFor({ firstHome: true, months });
+    const tier = months <= 60 ? '5 年以下' : '5 年期以上';
+    const bp = rateToBp(fund / 100, base);
+    fundHint.textContent =
+      bp === 0
+        ? `与公积金首套 ${tier}基准 ${(base * 100).toFixed(3)}% 一致`
+        : `公积金首套 ${tier}基准 ${(base * 100).toFixed(3)}%，当前${bp > 0 ? '上浮' : '下浮'} ${Math.abs(bp)} 个基点`;
+  }
+}
+
+/* ------------------------------------------------------------------ 预设 */
+
+function renderPresets() {
+  const build = (kind, presets) => {
+    const el = $(`[data-presets="${kind}"]`);
+    el.innerHTML = presets
+      .map(
+        (p) =>
+          `<button type="button" class="chip" data-set-rate="${kind}" data-value="${p.rate}" title="${p.label}">${p.hint}</button>`,
+      )
+      .join('');
+  };
+  build('commercial', RATE_PRESETS);
+  build('fund', FUND_PRESETS);
+}
+
+/* ------------------------------------------------------------------ 事件 */
+
+function setMode(mode) {
+  state.mode = mode;
+  $$('.seg-btn').forEach((btn) => {
+    const active = btn.dataset.mode === mode;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-checked', String(active));
+  });
+  $('[data-block="commercial"]').hidden = mode === 'fund';
+  $('[data-block="fund"]').hidden = mode === 'commercial';
+  updateRateHints();
+  scheduleRecompute();
+}
+
+function scheduleRecompute() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(recompute, 160);
+}
+
+function bindEvents() {
+  $$('.seg-btn').forEach((btn) => {
+    btn.addEventListener('click', () => setMode(btn.dataset.mode));
+  });
+
+  $$('[data-amount], [data-rate], [data-method]').forEach((input) => {
+    input.addEventListener('input', () => {
+      updateRateHints();
+      scheduleRecompute();
+    });
+    input.addEventListener('change', () => {
+      updateRateHints();
+      scheduleRecompute();
+    });
+  });
+
+  $('[data-term]').addEventListener('input', () => {
+    updateRateHints();
+    scheduleRecompute();
+  });
+
+  $$('[data-term-preset]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      $('[data-term]').value = btn.dataset.termPreset;
+      $$('[data-term-preset]').forEach((b) => b.classList.toggle('is-active', b === btn));
+      recompute();
+    });
+  });
+
+  $('[data-penalty-rate]').addEventListener('input', scheduleRecompute);
+  $('[data-penalty-free]').addEventListener('input', scheduleRecompute);
+
+  // 利率快捷预设
+  document.addEventListener('click', (event) => {
+    const chip = event.target.closest('[data-set-rate]');
+    if (!chip) return;
+    const kind = chip.dataset.setRate;
+    const rate = Number(chip.dataset.value);
+    $(`[data-rate="${kind}"]`).value = String(Number((rate * 100).toFixed(4)));
+    $$(`[data-presets="${kind}"] .chip`).forEach((c) => c.classList.toggle('is-active', c === chip));
+    updateRateHints();
+    recompute();
+  });
+
+  // Tab 切换
+  $$('.tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      $$('.tab').forEach((t) => {
+        const active = t === tab;
+        t.classList.toggle('is-active', active);
+        t.setAttribute('aria-selected', String(active));
+      });
+      $$('.tab-panel').forEach((panel) => {
+        panel.classList.toggle('is-active', panel.dataset.panel === tab.dataset.tab);
+      });
+      if (tab.dataset.tab === 'schedule' || tab.dataset.tab === 'payoff') {
+        // 从 display:none 恢复显示后重绘，确保 viewBox 拿到正确宽度
+        requestAnimationFrame(redrawCharts);
+      }
+    });
+  });
+
+  // 表格视图切换
+  $$('[data-schedule-view]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      state.scheduleView = btn.dataset.scheduleView;
+      state.monthlyLimit = 24;
+      $$('[data-schedule-view]').forEach((b) => b.classList.toggle('is-active', b === btn));
+      renderScheduleTable();
+    });
+  });
+
+  $('#schedule-more').addEventListener('click', () => {
+    state.monthlyLimit += 24;
+    renderScheduleTable();
+  });
+
+  // 结清表行交互
+  $('#payoff-table').addEventListener('click', (event) => {
+    const row = event.target.closest('tr[data-month]');
+    if (!row) return;
+    selectMonth(Number(row.dataset.month));
+  });
+
+  $('#payoff-table').addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const row = event.target.closest('tr[data-month]');
+    if (!row) return;
+    event.preventDefault();
+    selectMonth(Number(row.dataset.month));
+  });
+}
+
+function selectMonth(month) {
+  state.selectedMonth = month;
+  updatePayoffHighlight(highlightRefs, plan, month);
+  renderPayoffTable($('#payoff-table'), plan.payoff, { selectedMonth: month });
+}
+
+/* ------------------------------------------------------------------ 启动 */
+
+function init() {
+  renderPresets();
+  bindEvents();
+  $$('[data-term-preset]').forEach((b) => b.classList.toggle('is-active', b.dataset.termPreset === '30'));
+  updateRateHints();
+  recompute();
+}
+
+init();
