@@ -77,7 +77,7 @@ function readPenalty() {
 
 /* ------------------------------------------------------------------ 计算 */
 
-function recompute() {
+function recompute({ animate = false } = {}) {
   try {
     const { loans, months, years } = collectLoans();
     const { penaltyRate, penaltyFreeMonths } = readPenalty();
@@ -90,7 +90,7 @@ function recompute() {
     if (state.monthlyLimit > maxMonth) state.monthlyLimit = maxMonth;
 
     setError(null);
-    renderAll(years);
+    renderAll(years, { animate });
   } catch (error) {
     setError(error.message);
   }
@@ -104,8 +104,8 @@ function setError(message) {
 
 /* ------------------------------------------------------------------ 渲染 */
 
-function renderAll(years) {
-  renderKpis($('#kpis'), plan);
+function renderAll(years, { animate = false } = {}) {
+  renderKpis($('#kpis'), plan, { animate });
   renderSplitNote($('#split-note'), plan);
   updateTermNote(years);
   updateShares();
@@ -233,12 +233,27 @@ function setMode(mode) {
   $('[data-block="commercial"]').hidden = mode === 'fund';
   $('[data-block="fund"]').hidden = mode === 'commercial';
   updateRateHints();
-  scheduleRecompute();
+  recompute({ animate: true });
+}
+
+function applyTheme(theme) {
+  const next = theme === 'light' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try {
+    localStorage.setItem('loanlab-theme', next);
+  } catch {
+    /* 隐私模式下写不进去，不影响本次使用 */
+  }
+  $$('[data-theme-set]').forEach((btn) => {
+    const active = btn.dataset.themeSet === next;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-pressed', String(active));
+  });
 }
 
 function scheduleRecompute() {
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(recompute, 160);
+  debounceTimer = setTimeout(() => recompute(), 160);
 }
 
 function bindEvents() {
@@ -266,7 +281,7 @@ function bindEvents() {
     btn.addEventListener('click', () => {
       $('[data-term]').value = btn.dataset.termPreset;
       $$('[data-term-preset]').forEach((b) => b.classList.toggle('is-active', b === btn));
-      recompute();
+      recompute({ animate: true });
     });
   });
 
@@ -282,7 +297,12 @@ function bindEvents() {
     $(`[data-rate="${kind}"]`).value = String(Number((rate * 100).toFixed(4)));
     $$(`[data-presets="${kind}"] .chip`).forEach((c) => c.classList.toggle('is-active', c === chip));
     updateRateHints();
-    recompute();
+    recompute({ animate: true });
+  });
+
+  // 主题切换
+  $$('[data-theme-set]').forEach((btn) => {
+    btn.addEventListener('click', () => applyTheme(btn.dataset.themeSet));
   });
 
   // Tab 切换
@@ -345,9 +365,11 @@ function selectMonth(month) {
 function init() {
   renderPresets();
   bindEvents();
+  // head 里的内联脚本已按系统偏好或 localStorage 设好主题，这里只同步按钮状态
+  applyTheme(document.documentElement.dataset.theme || 'dark');
   $$('[data-term-preset]').forEach((b) => b.classList.toggle('is-active', b.dataset.termPreset === '30'));
   updateRateHints();
-  recompute();
+  recompute({ animate: true });
 }
 
 init();

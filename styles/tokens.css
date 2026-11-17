@@ -1,104 +1,133 @@
-/* 设计令牌：浅色专业金融工具风。数值全部 tabular，避免数字跳动时抖动。 */
+/* ============================================================
+   设计令牌
+   深色为默认主题：黑底 / 暖白 / 低饱和铜色，定位专业工具。
+   浅色主题用暖灰而非冷灰，让两个主题的温度感一致。
+   ============================================================ */
+
 :root {
-  --bg: #f4f6f9;
-  --surface: #ffffff;
-  --surface-2: #fafbfd;
-  --surface-3: #eff3f8;
-  --line: #e2e7ef;
-  --line-strong: #ccd5e1;
+  color-scheme: dark;
 
-  --ink: #0f1720;
-  --ink-2: #48546a;
-  --ink-3: #7d899c;
+  /* 中性面 */
+  --bg: #0a0d14;
+  --bg-sunken: #070a10;
+  --surface: #111624;
+  --surface-2: #161c2c;
+  --surface-3: #1c2436;
+  --surface-hi: #222b3f;
+  --glass: rgba(17, 22, 36, 0.78);
 
-  --brand: #4a8fe0;
-  --brand-deep: #2668b3;
-  --brand-soft: #e9f1fc;
-  --brand-ring: rgba(74, 143, 224, 0.24);
+  --line: #222a3c;
+  --line-strong: #33405a;
+  --line-hair: #1a2130;
 
-  --principal: #4a8fe0;
-  --principal-soft: #dce9fa;
-  --interest: #c98a3c;
-  --interest-soft: #f7e9d4;
-  --saved: #2e8b63;
-  --saved-soft: #dff2e8;
-  --warn: #b8562f;
+  /* 文字：暖白而非纯白，长时间盯数字不刺眼 */
+  --ink: #f2ede3;
+  --ink-2: #b2bacb;
+  --ink-3: #8b96ab;
+  --ink-4: #6a7488;
 
-  --radius-sm: 6px;
-  --radius: 10px;
-  --radius-lg: 14px;
+  /* 强调：低饱和铜 */
+  --accent: #c89258;
+  --accent-ink: #e3b47c;
+  --accent-deep: #a9743e;
+  --accent-soft: rgba(200, 146, 88, 0.13);
+  --accent-ring: rgba(200, 146, 88, 0.3);
 
-  --shadow-sm: 0 1px 2px rgba(15, 23, 32, 0.05);
-  --shadow: 0 2px 8px -2px rgba(15, 23, 32, 0.08), 0 1px 2px rgba(15, 23, 32, 0.04);
-  --shadow-lg: 0 12px 32px -12px rgba(15, 23, 32, 0.18);
+  /* 语义色 */
+  --principal: #6e9fd4;
+  --principal-soft: rgba(110, 159, 212, 0.15);
+  --interest: #c89258;
+  --interest-soft: rgba(200, 146, 88, 0.15);
+  --saved: #6fbf9a;
+  --saved-soft: rgba(111, 191, 154, 0.14);
+  --saved-ink: #8ad3b1;
+  --warn: #e08163;
+  --warn-soft: rgba(224, 129, 99, 0.13);
 
-  --mono: "SF Mono", "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
-  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  /* 排版 */
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI",
+    "Microsoft YaHei", "PingFang SC", "Helvetica Neue", sans-serif;
+  --mono: "SF Mono", "Cascadia Mono", "JetBrains Mono", "Roboto Mono", Consolas, monospace;
 
-  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --fs-xxs: 10.5px;
+  --fs-xs: 11.5px;
+  --fs-sm: 12.5px;
+  --fs-md: 13.5px;
+  --fs-lg: 15px;
+  --fs-xl: 21px;
+  --fs-2xl: 27px;
+
+  --lh-tight: 1.18;
+  --lh-normal: 1.55;
+  --tracking-tight: -0.018em;
+  --tracking-wide: 0.06em;
+
+  /* 圆角：略收，更像工具而不是消费级 App */
+  --r-xs: 5px;
+  --r-sm: 7px;
+  --r-md: 10px;
+  --r-lg: 13px;
+  --r-xl: 18px;
+
+  /* 阴影：深色下靠层次而非阴影，阴影只用来做轻微浮起 */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.42);
+  --shadow-sm: 0 2px 8px -3px rgba(0, 0, 0, 0.5);
+  --shadow: 0 6px 22px -10px rgba(0, 0, 0, 0.58), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 22px 56px -22px rgba(0, 0, 0, 0.72);
+  --inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+
+  /* 动效：ease-out 为主，弹簧只用于需要"手感"的场合 */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.32, 0.64, 1);
+  --dur-fast: 130ms;
+  --dur: 230ms;
+  --dur-slow: 460ms;
+
+  --page-max: 1440px;
+  --gap: 18px;
 }
 
-* {
-  box-sizing: border-box;
-}
+/* ---------------- 浅色主题 ---------------- */
+:root[data-theme="light"] {
+  color-scheme: light;
 
-/* 显式声明 display 的元素（.split-note / .more-btn）会盖掉 hidden 的默认样式，
-   这里统一兜底，避免出现"隐藏了却还占一块空白"的假象。 */
-[hidden] {
-  display: none !important;
-}
+  --bg: #f2f0eb;
+  --bg-sunken: #ebe8e1;
+  --surface: #fffefa;
+  --surface-2: #f8f6f1;
+  --surface-3: #f0ede6;
+  --surface-hi: #e9e5dc;
+  --glass: rgba(255, 254, 250, 0.82);
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-}
+  --line: #e2ddd2;
+  --line-strong: #cdc6b8;
+  --line-hair: #eae6dd;
 
-body {
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--sans);
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  font-variant-numeric: tabular-nums;
-}
+  --ink: #1b1e26;
+  --ink-2: #4a515f;
+  --ink-3: #6b7280;
+  --ink-4: #8c93a1;
 
-h1,
-h2,
-h3,
-h4 {
-  margin: 0;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
+  --accent: #a9743e;
+  --accent-ink: #8c5c2c;
+  --accent-deep: #7d5222;
+  --accent-soft: rgba(169, 116, 62, 0.11);
+  --accent-ring: rgba(169, 116, 62, 0.26);
 
-p {
-  margin: 0;
-}
+  --principal: #2f6fb4;
+  --principal-soft: rgba(47, 111, 180, 0.1);
+  --interest: #a9743e;
+  --interest-soft: rgba(169, 116, 62, 0.11);
+  --saved: #2c8a60;
+  --saved-soft: rgba(44, 138, 96, 0.1);
+  --saved-ink: #1f6d4a;
+  --warn: #bf5535;
+  --warn-soft: rgba(191, 85, 53, 0.1);
 
-button {
-  font-family: inherit;
-  font-size: inherit;
-  cursor: pointer;
-  border: none;
-  background: none;
-  color: inherit;
-}
-
-input,
-select {
-  font-family: inherit;
-  font-size: inherit;
-  color: inherit;
-}
-
-.num {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
-}
-
-.unit {
-  color: var(--ink-3);
-  font-size: 12px;
+  --shadow-xs: 0 1px 2px rgba(30, 24, 12, 0.06);
+  --shadow-sm: 0 2px 8px -3px rgba(30, 24, 12, 0.1);
+  --shadow: 0 6px 20px -10px rgba(30, 24, 12, 0.16), 0 1px 2px rgba(30, 24, 12, 0.05);
+  --shadow-lg: 0 20px 50px -22px rgba(30, 24, 12, 0.24);
+  --inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }

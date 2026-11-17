@@ -65,25 +65,39 @@ i 为月利率，取 `年利率 / 12`（名义利率按月计息），与国内�
 
 违约金按剩余本金乘以比例计收，并支持设置免罚期（还款满 X 期后不再收取）。
 
+## 外观主题
+
+深色（黑底 / 暖白 / 低饱和铜色）为默认，浅色为辅，可随系统自动选择，也可在右上角手动切换。
+主题由 CSS 变量驱动，图表颜色同样走变量，切换时无需重绘。
+
+```js
+document.documentElement.dataset.theme  // 'dark' | 'light'
+localStorage.getItem('loanlab-theme')   // 用户手动选择后记住
+```
+
+配色集中在 `styles/tokens.css`，改主题只动这一个文件。
+
 ## 目录结构
 
 ```
-index.html              页面结构
-styles/tokens.css       设计令牌
-styles/app.css          布局与组件
+index.html              页面结构 + 防主题闪烁的内联脚本
+styles/tokens.css       设计令牌（深浅双主题配色 / 排版 / 动效曲线）
+styles/base.css         基础层：重置、排版、滚动条、焦点、工具类
+styles/layout.css       结构层：顶栏、页面网格、输入面板、页脚
+styles/components.css   组件层：表单控件、卡片、表格、图表、高亮卡
 src/core/money.js       金额单位与格式化（分 <-> 元）
 src/core/amortize.js    摊销表：两种还款方式 + 组合贷合并
 src/core/payoff.js      提前结清时间线
 src/core/rates.js       LPR / 公积金利率基准与基点换算
 src/core/plan.js        编排层：输入 -> 完整结果
-src/ui/charts.js        自绘 SVG 图表
+src/ui/charts.js        自绘 SVG 图表（颜色走 CSS 类，适配主题）
 src/ui/tables.js        表格渲染
-src/ui/summary.js       KPI、结清高亮卡、方式对比
+src/ui/summary.js       KPI、结清高亮卡、方式对比、数字滚动
 src/app.js              状态与事件
 tests/core.test.mjs     28 项单元测试
 tools/serve.mjs         零依赖静态服务器
-tools/smoke.mjs         47 项浏览器冒烟测试
-tools/screenshot.mjs    关键状态截图
+tools/smoke.mjs         53 项浏览器冒烟测试
+tools/screenshot.mjs    双主题关键状态截图
 ```
 
 分层原则：`core/` 全部是纯函数，不碰 DOM，可直接在 Node 里测试；`ui/` 只负责把数据变成视图。
@@ -92,8 +106,8 @@ tools/screenshot.mjs    关键状态截图
 
 ```bash
 node --test tests/core.test.mjs    # 28 项：公式、恒等式、边界、组合贷、违约金
-node tools/smoke.mjs               # 47 项：真实浏览器加载与交互（需先启动 serve.mjs）
-node tools/screenshot.mjs          # 输出到 docs/screenshots/
+node tools/smoke.mjs               # 53 项：真实浏览器加载与交互（需先启动 serve.mjs）
+node tools/screenshot.mjs          # 输出到 docs/screenshots/（深浅两套主题）
 ```
 
 单测里固定了几个可外部核对的基准值，用于防止公式被整体改错：

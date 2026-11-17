@@ -6,7 +6,21 @@
 <title>房贷测算台 · 等额本息 / 等额本金 / 组合贷 / 提前结清</title>
 <meta name="description" content="根据当前 LPR 与公积金利率，测算等额本息与等额本金的月度本金利息、组合贷合并月供，以及任意年份提前结清的总支出与省息。" />
 <link rel="stylesheet" href="styles/tokens.css" />
-<link rel="stylesheet" href="styles/app.css" />
+<link rel="stylesheet" href="styles/base.css" />
+<link rel="stylesheet" href="styles/layout.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<script>
+  /* 主题必须在 CSS 应用前定好，否则深色用户会先看到白屏再反转 */
+  (function () {
+    try {
+      var saved = localStorage.getItem('loanlab-theme');
+      var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      document.documentElement.dataset.theme = saved || (prefersLight ? 'light' : 'dark');
+    } catch (e) {
+      document.documentElement.dataset.theme = 'dark';
+    }
+  })();
+</script>
 </head>
 <body>
 
@@ -23,9 +37,26 @@
         <p>等额本息 · 等额本金 · 组合贷 · 提前结清</p>
       </div>
     </div>
+
+    <div class="topbar-spacer"></div>
+
     <div class="baseline" id="baseline-note">
       <span class="baseline-dot" aria-hidden="true"></span>
       <span>5 年期以上 LPR <strong class="num">3.50%</strong> · 公积金首套 <strong class="num">2.60%</strong></span>
+    </div>
+
+    <div class="theme-toggle" role="radiogroup" aria-label="外观主题">
+      <button type="button" class="theme-btn" data-theme-set="dark" aria-label="深色主题" aria-pressed="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme-set="light" aria-label="浅色主题" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+      </button>
     </div>
   </div>
 </header>

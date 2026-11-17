@@ -1,0 +1,240 @@
+/* ============================================================
+   结构层：顶栏 / 页面网格 / 输入面板 / 结果区 / 页脚
+   ============================================================ */
+
+/* ---------------- 顶栏 ---------------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--glass);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar-inner {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 13px 26px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.brand-mark {
+  width: 31px;
+  height: 31px;
+  flex: none;
+  color: var(--accent-ink);
+  padding: 6px;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.brand-text h1 {
+  font-size: 15.5px;
+  letter-spacing: -0.022em;
+}
+
+.brand-text p {
+  font-size: var(--fs-xxs);
+  color: var(--ink-3);
+  letter-spacing: var(--tracking-wide);
+  margin-top: 1px;
+}
+
+.topbar-spacer {
+  flex: 1;
+}
+
+.baseline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  padding: 5px 13px 5px 11px;
+  white-space: nowrap;
+}
+
+.baseline-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--saved);
+  box-shadow: 0 0 0 3px var(--saved-soft);
+  flex: none;
+}
+
+.baseline strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* 主题切换 */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  flex: none;
+}
+
+.theme-btn {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 99px;
+  color: var(--ink-3);
+  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out),
+    transform var(--dur) var(--ease-spring);
+}
+
+.theme-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.theme-btn:hover {
+  color: var(--ink);
+}
+
+.theme-btn.is-active {
+  background: var(--surface-hi);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-xs);
+}
+
+.theme-btn:active {
+  transform: scale(0.9);
+}
+
+/* ---------------- 页面网格 ---------------- */
+.layout {
+  position: relative;
+  z-index: 1;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 22px 26px 36px;
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: var(--gap);
+  align-items: start;
+}
+
+/* ---------------- 输入面板 ---------------- */
+.panel-input {
+  position: sticky;
+  top: 78px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow), var(--inset-hi);
+  padding: 18px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.panel-title h2 {
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.divider {
+  height: 1px;
+  background: var(--line);
+  margin: 15px -18px;
+}
+
+/* ---------------- 结果区 ---------------- */
+.results {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------------- 页脚 ---------------- */
+.page-foot {
+  position: relative;
+  z-index: 1;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 4px 26px 34px;
+  font-size: var(--fs-xs);
+  color: var(--ink-4);
+  line-height: 1.7;
+}
+
+.page-foot a {
+  color: var(--ink-3);
+  border-bottom: 1px solid transparent;
+  transition: color var(--dur-fast), border-color var(--dur-fast);
+}
+
+.page-foot a:hover {
+  color: var(--accent-ink);
+  border-bottom-color: var(--accent-ring);
+}
+
+/* ---------------- 响应式 ---------------- */
+@media (max-width: 1120px) {
+  .layout {
+    grid-template-columns: 1fr;
+    padding: 16px 16px 30px;
+  }
+
+  .panel-input {
+    position: static;
+  }
+
+  .topbar-inner,
+  .page-foot {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+@media (max-width: 720px) {
+  .baseline {
+    display: none;
+  }
+
+  .topbar-inner {
+    padding: 11px 14px;
+  }
+
+  .brand-text p {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .page-foot {
+    padding: 4px 16px 28px;
+  }
+}

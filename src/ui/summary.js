@@ -1,5 +1,8 @@
 /**
  * 摘要类视图：KPI 卡、结清高亮卡、方式对比。
+ *
+ * 数字动效的取舍：只有「点按钮 / 切预设 / 首次加载」才滚动，
+ * 输入框实时触发的更新直接落值——否则每敲一个数字都在追动画，手感很差。
  */
 
 import { formatCents } from '../core/money.js';
@@ -7,15 +10,63 @@ import { formatCents } from '../core/money.js';
 const yuan = (cents) => formatCents(cents);
 const wan = (cents) => (cents / 100 / 10000).toFixed(2);
 
-function kpi({ label, value, unit, foot, small = false }) {
-  return `<div class="kpi">
+const parseNum = (s) => Number(String(s).replace(/,/g, ''));
+
+function formatNum(value, decimals, grouped) {
+  const fixed = value.toFixed(decimals);
+  if (!grouped) return fixed;
+  const [int, frac] = fixed.split('.');
+  const signed = int.startsWith('-');
+  const digits = signed ? int.slice(1) : int;
+  const groupedInt = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const body = frac ? `${groupedInt}.${frac}` : groupedInt;
+  return signed ? `-${body}` : body;
+}
+
+/** 数字平滑滚动；小数位与千分位跟随目标字符串 */
+function animateNumberText(el, nextText) {
+  const prevText = el.textContent.trim();
+  if (prevText === nextText) return;
+
+  const from = parseNum(prevText);
+  const to = parseNum(nextText);
+  if (!Number.isFinite(from) || !Number.isFinite(to)) {
+    el.textContent = nextText;
+    return;
+  }
+
+  const decimals = (nextText.split('.')[1] || '').length;
+  const grouped = nextText.includes(',');
+  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion || from === to) {
+    el.textContent = nextText;
+    return;
+  }
+
+  cancelAnimationFrame(el._raf);
+  const t0 = performance.now();
+  const dur = 480;
+  el._raf = requestAnimationFrame(function step(now) {
+    const t = Math.min((now - t0) / dur, 1);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = formatNum(from + (to - from) * eased, decimals, grouped);
+    if (t < 1) {
+      el._raf = requestAnimationFrame(step);
+    } else {
+      el.textContent = nextText;
+    }
+  });
+}
+
+function kpiHtml({ tone, label, value, unit, foot, small }) {
+  return `<div class="kpi" data-tone="${tone}">
     <div class="kpi-label">${label}</div>
     <div class="kpi-value ${small ? 'is-small' : ''}"><span class="num">${value}</span><span class="kpi-unit">${unit}</span></div>
     <div class="kpi-foot">${foot}</div>
   </div>`;
 }
 
-export function renderKpis(el, plan) {
+function buildKpiData(plan) {
   const m = plan.merged;
   const isCombo = plan.schedules.length > 1;
   const years = plan.months / 12;
@@ -23,36 +74,58 @@ export function renderKpis(el, plan) {
 
   const first = m.summary.firstPayment;
   const last = m.summary.lastPayment;
-  const paymentFoot = declining
-    ? `末月降至 ${yuan(last)}`
-    : `全期月供固定 · 末期 ${yuan(last)}`;
 
-  el.innerHTML = [
-    kpi({
+  return [
+    {
+      tone: 'neutral',
       label: '贷款总额',
       value: wan(m.totals.principal),
       unit: '万元',
       foot: `${years} 年 · ${plan.months} 期${isCombo ? ` · ${plan.schedules.length} 笔` : ''}`,
-    }),
-    kpi({
+    },
+    {
+      tone: 'principal',
       label: isCombo ? '首月月供（合计）' : '首月月供',
       value: yuan(first),
       unit: '元',
-      foot: paymentFoot,
-    }),
-    kpi({
+      foot: declining ? `末月降至 ${yuan(last)}` : `全期月供固定 · 末期 ${yuan(last)}`,
+    },
+    {
+      tone: 'interest',
       label: '全周期总利息',
       value: wan(m.totals.interest),
       unit: '万元',
       foot: `利息是本金 <strong>${((m.totals.interest / m.totals.principal) * 100).toFixed(1)}%</strong>`,
-    }),
-    kpi({
+    },
+    {
+      tone: 'accent',
       label: '还到期总支出',
       value: wan(m.totals.payment),
       unit: '万元',
       foot: `本金 + 利息 · <strong>${yuan(m.totals.payment)} 元</strong>`,
-    }),
-  ].join('');
+    },
+  ];
+}
+
+export function renderKpis(el, plan, { animate = false } = {}) {
+  const data = buildKpiData(plan);
+
+  if (!animate || el.children.length !== data.length) {
+    el.innerHTML = data.map(kpiHtml).join('');
+    return;
+  }
+
+  const cards = el.querySelectorAll('.kpi');
+  data.forEach((item, index) => {
+    const card = cards[index];
+    card.dataset.tone = item.tone;
+    card.querySelector('.kpi-label').textContent = item.label;
+    const valueEl = card.querySelector('.kpi-value .num');
+    const unitEl = card.querySelector('.kpi-unit');
+    if (unitEl.textContent.trim() !== item.unit) unitEl.textContent = item.unit;
+    animateNumberText(valueEl, item.value);
+    card.querySelector('.kpi-foot').innerHTML = item.foot;
+  });
 }
 
 /**
@@ -127,9 +200,9 @@ export function renderCompare(el, cmp, plan) {
   const ep = cmp.equalPayment;
   const epr = cmp.equalPrincipal;
 
-  const card = (data, { recommended = false } = {}) => `
+  const card = (data, badge, badgeClass) => `
     <div class="cmp-card">
-      <h3>${data.label}${recommended ? '<span class="badge">前期压力小</span>' : '<span class="badge" style="background:var(--saved-soft);color:var(--saved)">总利息少</span>'}</h3>
+      <h3>${data.label}<span class="badge ${badgeClass}">${badge}</span></h3>
       <div class="cmp-row"><span>首月月供</span><span class="num">${yuan(data.firstPayment)} 元</span></div>
       <div class="cmp-row"><span>末月月供</span><span class="num">${yuan(data.lastPayment)} 元</span></div>
       <div class="cmp-row"><span>总利息</span><span class="num">${yuan(data.totalInterest)} 元</span></div>
@@ -142,8 +215,8 @@ export function renderCompare(el, cmp, plan) {
 
   el.innerHTML = `
     <div class="cmp-grid">
-      ${card(ep, { recommended: true })}
-      ${card(epr)}
+      ${card(ep, '前期压力小', 'is-accent')}
+      ${card(epr, '总利息少', 'is-saved')}
     </div>
     <div class="cmp-verdict">
       等额本金比等额本息<strong>少付利息 ${yuan(saved)} 元</strong>，代价是首月要多还 <strong>${yuan(gap)} 元</strong>，之后逐月递减。

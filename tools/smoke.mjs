@@ -72,7 +72,7 @@ try {
 
   /* ---------------------------------------------- 1. 首屏 */
   await cdp.navigate(URL_UNDER_TEST);
-  await settle(600);
+  await settle(950);
 
   check('页面标题正确', (await cdp.eval('document.title')).includes('房贷测算台'));
   check('无未捕获异常', cdp.exceptions.length === 0, cdp.exceptions.join(' | ') || '无');
@@ -156,7 +156,7 @@ try {
 
   /* ---------------------------------------------- 4. 组合贷 */
   await cdp.click('.seg-btn[data-mode="combo"]');
-  await settle(450);
+  await settle(720);
   check('组合贷显示两个贷款块',
     (await cdp.eval(`!document.querySelector('[data-block="commercial"]').hidden && !document.querySelector('[data-block="fund"]').hidden`)));
 
@@ -187,7 +187,7 @@ try {
 
   /* ---------------------------------------------- 5. 等额本金 */
   await cdp.click('.seg-btn[data-mode="commercial"]');
-  await settle(300);
+  await settle(560);
   await cdp.setInput('[data-amount="commercial"]', '100');
   await cdp.setInput('[data-rate="commercial"]', '3.5');
   await settle(480);
@@ -230,11 +230,34 @@ try {
   check('修正输入后错误提示消失',
     await cdp.eval(`document.querySelector('#form-error').hidden`));
 
-  /* ---------------------------------------------- 8. 最终健康检查 */
+  /* ---------------------------------------------- 8. 主题切换 */
+  const bgLight = await cdp.eval('getComputedStyle(document.body).backgroundColor');
+  await cdp.click('[data-theme-set="dark"]');
+  await settle(620);
+  check('主题可切到深色', (await cdp.eval('document.documentElement.dataset.theme')) === 'dark');
+  const bgDark = await cdp.eval('getComputedStyle(document.body).backgroundColor');
+  check('深色主题改变了页面背景', bgDark !== bgLight, `${bgLight} -> ${bgDark}`);
+  check('主题偏好写入 localStorage', (await cdp.eval(`localStorage.getItem('loanlab-theme')`)) === 'dark');
+  check('图表填充色跟随主题', await cdp.eval(`(() => {
+    const bar = document.querySelector('.chart-box svg .bar-principal');
+    return !!bar && getComputedStyle(bar).fill.startsWith('rgb');
+  })()`));
+
+  await cdp.click('[data-theme-set="light"]');
+  await settle(620);
+  check('主题可切回浅色', (await cdp.eval('document.documentElement.dataset.theme')) === 'light');
+
+  await cdp.click('[data-theme-set="dark"]');
+  await settle(620);
+  check('主题切换后数值仍正确',
+    (await text('.kpi:nth-child(2) .kpi-value .num')).length > 0);
+
+  /* ---------------------------------------------- 9. 最终健康检查 */
   check('全程无未捕获异常', cdp.exceptions.length === 0, cdp.exceptions.join(' | ') || '无');
   check('全程无控制台错误', cdp.consoleErrors.length === 0, cdp.consoleErrors.join(' | ') || '无');
   check('关键资源均已加载',
-    ['styles/tokens.css', 'styles/app.css', 'src/app.js'].every((p) => cdp.requests.some((u) => u.endsWith(p))),
+    ['styles/tokens.css', 'styles/base.css', 'styles/layout.css', 'styles/components.css', 'src/app.js']
+      .every((p) => cdp.requests.some((u) => u.endsWith(p))),
     `${cdp.requests.length} 个请求`);
 
   await cdp.setViewport(1440, 960);

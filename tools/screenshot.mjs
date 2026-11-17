@@ -58,38 +58,56 @@ const setMethod = (kind, method) =>
 try {
   await cdp.setViewport(1440, 1000);
   await cdp.navigate(APP_URL);
+  await sleep(800);
+
+  // 深色为主打主题，先切过去再截图
+  await cdp.click('[data-theme-set="dark"]');
   await sleep(700);
-  await shot('01-overview.png');
+  await shot('01-overview-dark.png');
 
   await cdp.click('.tab[data-tab="payoff"]');
   await sleep(500);
-  await shot('02-payoff.png');
+  await shot('02-payoff-dark.png');
 
   await cdp.click('.tab[data-tab="compare"]');
   await sleep(400);
-  await shot('03-compare.png');
+  await shot('03-compare-dark.png');
 
   await cdp.click('.tab[data-tab="schedule"]');
   await cdp.click('.seg-btn[data-mode="combo"]');
-  await sleep(600);
+  await sleep(700);
   await cdp.setInput('[data-amount="commercial"]', '40');
-  await sleep(500);
-  await shot('04-combo.png');
+  await sleep(600);
+  await shot('04-combo-dark.png');
 
   await cdp.click('.seg-btn[data-mode="commercial"]');
-  await sleep(300);
+  await sleep(500);
   await cdp.setInput('[data-amount="commercial"]', '100');
   await setMethod('commercial', 'equal-principal');
-  await sleep(600);
+  await sleep(700);
   await cdp.click('[data-schedule-view="month"]');
   await sleep(400);
-  await shot('05-equal-principal-monthly.png');
+  await shot('05-equal-principal-dark.png');
 
   await cdp.setViewport(390, 844);
   await sleep(600);
   await cdp.navigate(APP_URL);
+  await sleep(800);
+  await cdp.click('[data-theme-set="dark"]');
   await sleep(700);
-  await shot('06-mobile.png');
+  await shot('06-mobile-dark.png');
+
+  // 浅色主题抽查两屏
+  await cdp.setViewport(1440, 1000);
+  await cdp.navigate(APP_URL);
+  await sleep(800);
+  await cdp.click('[data-theme-set="light"]');
+  await sleep(700);
+  await shot('07-overview-light.png');
+
+  await cdp.click('.tab[data-tab="payoff"]');
+  await sleep(500);
+  await shot('08-payoff-light.png');
 } finally {
   try {
     await cdp.send('Browser.close');
