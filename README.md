@@ -147,4 +147,10 @@ Playwright 缓存中的 `chrome-headless-shell`；也可通过 `APP_URL` / `CDP_
 
 ## 部署
 
-纯静态站点，把仓库根目录推到 GitHub Pages 即可，无需构建步骤。
+纯静态站点，无构建步骤，推到 GitHub Pages 即可：
+
+**https://x-lsh.github.io/loan-lab/**
+
+仓库 <https://github.com/X-LSH/loan-lab>，分支 `master`，Pages 开启于仓库根目录。
+上线后用 `APP_URL=https://x-lsh.github.io/loan-lab/index.html node tools/smoke.mjs`
+对线上地址跑一遍冒烟，确认 CDN 与真实网络环境下的行为一致。
