@@ -71,9 +71,16 @@ function buildKpiData(plan) {
   const isCombo = plan.schedules.length > 1;
   const years = plan.months / 12;
   const declining = plan.schedules.some((s) => s.method === 'equal-principal');
+  const multiRate = (plan.mergedRateChanges?.length ?? 1) > 1;
 
   const first = m.summary.firstPayment;
   const last = m.summary.lastPayment;
+
+  const paymentFoot = declining
+    ? `末月降至 ${yuan(last)}`
+    : multiRate
+      ? `月供随重定价变化 · 末期 ${yuan(last)}`
+      : `全期月供固定 · 末期 ${yuan(last)}`;
 
   return [
     {
@@ -81,14 +88,14 @@ function buildKpiData(plan) {
       label: '贷款总额',
       value: wan(m.totals.principal),
       unit: '万元',
-      foot: `${years} 年 · ${plan.months} 期${isCombo ? ` · ${plan.schedules.length} 笔` : ''}`,
+      foot: `${years} 年 · ${plan.months} 期${isCombo ? ` · ${plan.schedules.length} 笔` : ''}${multiRate ? ' · 逐年重定价' : ''}`,
     },
     {
       tone: 'principal',
       label: isCombo ? '首月月供（合计）' : '首月月供',
       value: yuan(first),
       unit: '元',
-      foot: declining ? `末月降至 ${yuan(last)}` : `全期月供固定 · 末期 ${yuan(last)}`,
+      foot: paymentFoot,
     },
     {
       tone: 'interest',

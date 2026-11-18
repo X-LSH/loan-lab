@@ -97,6 +97,23 @@ try {
   await sleep(700);
   await shot('06-mobile-dark.png');
 
+  // LPR 逐年重定价场景
+  await cdp.setViewport(1440, 1000);
+  await cdp.navigate(APP_URL);
+  await sleep(850);
+  await cdp.click('[data-theme-set="dark"]');
+  await sleep(700);
+  await cdp.eval(`(() => { document.querySelector('#lpr-section').open = true; })()`);
+  await cdp.click('[data-lpr-enabled]');
+  await sleep(700);
+  await cdp.click('[data-lpr-scenario="down"]');
+  await sleep(800);
+  await shot('09-lpr-repricing-dark.png');
+
+  await cdp.click('[data-schedule-view="month"]');
+  await sleep(400);
+  await shot('10-lpr-monthly-dark.png');
+
   // 浅色主题抽查两屏
   await cdp.setViewport(1440, 1000);
   await cdp.navigate(APP_URL);

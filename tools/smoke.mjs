@@ -95,7 +95,7 @@ try {
   check('利率 3.50% 时总利息 61.66 万', (await text('.kpi:nth-child(3) .kpi-value .num')) === '61.66');
   check('利率提示换算为 LPR 基准', (await text('[data-rate-hint="commercial"]')).includes('基准'));
 
-  check('两个图表已绘制', (await count('.chart-box svg')) === 2);
+  check('三个图表已绘制（月供 / 构成 / 结清）', (await count('.chart-box svg')) === 3, String(await count('.chart-box svg')));
 
   /* ---------------------------------------------- 2. 还款计划 */
   check('年度表默认展开 30 行', (await count('#schedule-table tbody tr')) === 30);
@@ -230,7 +230,54 @@ try {
   check('修正输入后错误提示消失',
     await cdp.eval(`document.querySelector('#form-error').hidden`));
 
-  /* ---------------------------------------------- 8. 主题切换 */
+  /* ---------------------------------------------- 8. LPR 逐年重定价 */
+  await cdp.click('.tab[data-tab="schedule"]');
+  await settle(220);
+  await cdp.eval(`(() => { document.querySelector('#lpr-section').open = true; })()`);
+  await settle(160);
+
+  await cdp.click('[data-lpr-enabled]');
+  await settle(620);
+  check('开启 LPR 重定价后商贷利率变为只读',
+    await cdp.eval(`document.querySelector('[data-rate="commercial"]').readOnly`));
+  check('利率提示显示 LPR + 加点',
+    (await text('[data-rate-hint="commercial"]')).includes('LPR'),
+    await text('[data-rate-hint="commercial"]'));
+  check('逐年 LPR 编辑器按 30 年展开', (await count('[data-lpr-year]')) === 30);
+
+  const interestBefore = Number(await text('.kpi:nth-child(3) .kpi-value .num'));
+  await cdp.click('[data-lpr-scenario="down"]');
+  await settle(720);
+  const interestAfter = Number(await text('.kpi:nth-child(3) .kpi-value .num'));
+  check('LPR 逐年下行后总利息下降', interestAfter < interestBefore,
+    `${interestBefore} -> ${interestAfter}`);
+  check('逐年摘要显示下行趋势',
+    (await text('[data-lpr-summary]')).includes('下行'),
+    await text('[data-lpr-summary]'));
+
+  // 月供图出现重定价标记
+  await settle(320);
+  const markers = await count('#chart-payment .marker-text');
+  check('月供图标出重定价位置', markers >= 2, `${markers} 个标记`);
+  check('月供图副标题列出各段月供',
+    (await text('#payment-chart-sub')).includes('起'),
+    await text('#payment-chart-sub'));
+
+  // 手动改某一格 LPR
+  await cdp.setInput('[data-lpr-year="5"]', '2.20');
+  await settle(520);
+  check('手改 LPR 后该格高亮',
+    await cdp.eval(`document.querySelectorAll('.lpr-cell.is-changed').length > 0`));
+  check('手改 LPR 后摘要标记为自定义路径',
+    (await text('[data-lpr-summary]')).includes('→') ||
+    (await cdp.eval(`[...document.querySelectorAll('[data-lpr-scenario]')].every(b => !b.classList.contains('is-active'))`)));
+
+  await cdp.click('[data-lpr-enabled]');
+  await settle(520);
+  check('关闭 LPR 重定价后利率恢复可写',
+    await cdp.eval(`!document.querySelector('[data-rate="commercial"]').readOnly`));
+
+  /* ---------------------------------------------- 9. 主题切换 */
   const bgLight = await cdp.eval('getComputedStyle(document.body).backgroundColor');
   await cdp.click('[data-theme-set="dark"]');
   await settle(620);
@@ -252,7 +299,7 @@ try {
   check('主题切换后数值仍正确',
     (await text('.kpi:nth-child(2) .kpi-value .num')).length > 0);
 
-  /* ---------------------------------------------- 9. 最终健康检查 */
+  /* ---------------------------------------------- 10. 最终健康检查 */
   check('全程无未捕获异常', cdp.exceptions.length === 0, cdp.exceptions.join(' | ') || '无');
   check('全程无控制台错误', cdp.consoleErrors.length === 0, cdp.consoleErrors.join(' | ') || '无');
   check('关键资源均已加载',

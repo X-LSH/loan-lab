@@ -4,7 +4,10 @@ import assert from 'node:assert/strict';
 import { buildSchedule, mergeSchedules, annuityPayment, METHOD } from '../src/core/amortize.js';
 import { payoffTimeline, settleAtMonth } from '../src/core/payoff.js';
 import { buildPlan, compareMethods, aggregateByYear } from '../src/core/plan.js';
-import { applyBp, rateToBp, fundRateFor, parseRateInput, LPR_5Y, FUND_RATE } from '../src/core/rates.js';
+import {
+  applyBp, rateToBp, fundRateFor, parseRateInput,
+  LPR_5Y, FUND_RATE, ratesFromLprPath, lprScenario, describeRatePath,
+} from '../src/core/rates.js';
 import { toCents, formatCents, formatWan, formatPercent } from '../src/core/money.js';
 
 /** 基准案例：100 万元、3.5%、30 年 */
@@ -305,4 +308,201 @@ test('构造层面：组合贷本金分配之和等于总贷款', () => {
   assert.equal(plan.merged.totals.principal, toCents(1_200_000));
   assert.equal(plan.schedules[0].rows.length, 300);
   assert.equal(plan.schedules[1].rows.length, 300);
+});
+
+// ---------------------------------------------------------------- LPR 逐年重定价
+
+test('重定价：全程同一利率时，annualRates 与 annualRate 结果逐分一致', () => {
+  const flat = buildSchedule({ ...BASE, method: METHOD.EQUAL_PAYMENT, annualRates: new Array(30).fill(0.035) });
+  const single = buildSchedule({ ...BASE, method: METHOD.EQUAL_PAYMENT });
+  assert.equal(flat.rows.length, single.rows.length);
+  flat.rows.forEach((row, i) => {
+    assert.equal(row.payment, single.rows[i].payment, `第 ${i + 1} 期月供`);
+    assert.equal(row.principal, single.rows[i].principal, `第 ${i + 1} 期本金`);
+    assert.equal(row.interest, single.rows[i].interest, `第 ${i + 1} 期利息`);
+    assert.equal(row.balance, single.rows[i].balance, `第 ${i + 1} 期余额`);
+  });
+  assert.equal(flat.totals.interest, single.totals.interest);
+});
+
+test('重定价：利率不变时月供恒定，paymentSteps 只记录一次', () => {
+  const s = buildSchedule({ ...BASE, method: METHOD.EQUAL_PAYMENT, annualRates: new Array(30).fill(0.035) });
+  const fixed = s.rows.slice(0, -1).map((r) => r.payment);
+  assert.equal(new Set(fixed).size, 1, '除末期外月供应完全相同');
+  assert.equal(s.paymentSteps.length, 1, '利率未变不应产生新的月供档位');
+  assert.equal(s.paymentSteps[0].monthly, 449045);
+});
+
+test('重定价：第 2 年起的月供按「剩余本金 + 剩余期数 + 新利率」重算', () => {
+  const rates = [0.035, 0.0325];
+  const s = buildSchedule({ ...BASE, method: METHOD.EQUAL_PAYMENT, annualRates: rates });
+
+  const balanceAfter12 = s.rows[11].balance;
+  const expected = Math.round(annuityPayment(balanceAfter12, 0.0325 / 12, 348));
+  assert.equal(s.paymentSteps.length, 2);
+  assert.equal(s.paymentSteps[1].period, 13);
+  assert.equal(s.paymentSteps[1].monthly, expected, '第 13 期起月供');
+  assert.equal(s.rows[12].payment, expected);
+
+  // 反例：若把新利率套进原始本金与原始期限，会得到不同的数字
+  const wrong = Math.round(annuityPayment(BASE.principal, 0.0325 / 12, 360));
+  assert.notEqual(expected, wrong, '必须基于剩余本金，而非原始本金');
+});
+
+test('重定价：LPR 逐年下行则总利息减少，逐年上行则增加', () => {
+  const flat = buildSchedule({ ...BASE, method: METHOD.EQUAL_PAYMENT, annualRates: new Array(30).fill(0.035) });
+  const down = buildSchedule({
+    ...BASE,
+    method: METHOD.EQUAL_PAYMENT,
+    annualRates: lprScenario({ base: 0.035, years: 30, stepBp: -15 }),
+  });
+  const up = buildSchedule({
+    ...BASE,
+    method: METHOD.EQUAL_PAYMENT,
+    annualRates: lprScenario({ base: 0.035, years: 30, stepBp: 15 }),
+  });
+  assert.ok(down.totals.interest < flat.totals.interest, '下行应少付利息');
+  assert.ok(up.totals.interest > flat.totals.interest, '上行应多付利息');
+  assert.ok(down.totals.principal === BASE.principal && up.totals.principal === BASE.principal);
+});
+
+test('重定价：等额本金下月供随利率变化，但每期本金仍固定', () => {
+  const s = buildSchedule({
+    ...BASE,
+    method: METHOD.EQUAL_PRINCIPAL,
+    annualRates: [0.035, 0.03, 0.025],
+  });
+  for (let k = 0; k < s.rows.length - 1; k += 1) {
+    assert.equal(s.rows[k].principal, s.rows[0].principal, `第 ${k + 1} 期本金`);
+  }
+  // 利率从 3.5% 降到 3.0%，第 13 期利息应低于按 3.5% 算的水平
+  // 注意利息按**期初**余额计息，而 rows[].balance 是期末余额
+  const opening13 = s.rows[12].balance + s.rows[12].principal;
+  const iOld = 0.035 / 12;
+  const iNew = 0.03 / 12;
+  const interestIfUnchanged = Math.round(opening13 * iOld);
+  assert.ok(s.rows[12].interest < interestIfUnchanged, '降息后利息应下降');
+  assert.equal(s.rows[12].interest, Math.round(opening13 * iNew));
+});
+
+test('重定价：分段利率下结清恒等式仍成立', () => {
+  const plan = buildPlan({
+    months: 360,
+    loans: [
+      {
+        label: '商业贷款',
+        principal: toCents(1_000_000),
+        annualRates: lprScenario({ base: 0.0305, years: 30, stepBp: -10 }),
+        method: METHOD.EQUAL_PAYMENT,
+      },
+    ],
+    penaltyRate: 0.01,
+    penaltyFreeMonths: 12,
+  });
+  for (const p of plan.payoff.points) {
+    assert.equal(
+      p.totalOutlay,
+      plan.payoff.principal + p.interestPaid + p.penalty,
+      `第 ${p.month} 期结清的支出恒等式`,
+    );
+    assert.equal(
+      p.savedInterest,
+      plan.payoff.totalInterest - p.interestPaid - p.penalty,
+      `第 ${p.month} 期结清的节省恒等式`,
+    );
+  }
+});
+
+test('重定价：利率数组不足年数时用最后一个值延伸', () => {
+  const s = buildSchedule({ ...BASE, method: METHOD.EQUAL_PAYMENT, annualRates: [0.035, 0.03] });
+  // 30 年，但只给了 2 个值：第 3~30 年都应是 3.0%
+  assert.equal(s.rows[0].annualRate, 0.035);
+  assert.equal(s.rows[12].annualRate, 0.03);
+  assert.equal(s.rows[24].annualRate, 0.03);
+  assert.equal(s.rows.at(-1).annualRate, 0.03);
+  // 只有两次利率变化 => 两个月供档位
+  assert.equal(s.paymentSteps.length, 2);
+});
+
+test('LPR 路径工具：加点换算与情景生成', () => {
+  const rates = ratesFromLprPath([0.035, 0.0325, 0.03], -45, 5);
+  assertNearlyEqual(rates[0], 0.0305, 1e-9, '第 1 年 LPR−45BP');
+  assertNearlyEqual(rates[1], 0.028, 1e-9, '第 2 年');
+  assertNearlyEqual(rates[2], 0.0255, 1e-9, '第 3 年');
+  assertNearlyEqual(rates[4], 0.0255, 1e-9, '第 5 年沿用最后一个值');
+
+  const flat = lprScenario({ base: 0.035, years: 10 });
+  assert.equal(flat.length, 10);
+  assert.ok(flat.every((r) => Math.abs(r - 0.035) < 1e-9), '不变情景');
+
+  const taper = lprScenario({ base: 0.035, years: 5, toRate: 0.03 });
+  assertNearlyEqual(taper[0], 0.035, 1e-9, '起点');
+  assertNearlyEqual(taper[4], 0.03, 1e-9, '终点');
+  assertNearlyEqual(taper[2], 0.0325, 1e-9, '线性中点');
+});
+
+test('重定价：paymentSteps 与合并轨迹对得上', () => {
+  const plan = buildPlan({
+    months: 240,
+    loans: [
+      {
+        label: '商业贷款',
+        principal: toCents(800_000),
+        annualRates: [0.035, 0.0325],
+        method: METHOD.EQUAL_PAYMENT,
+      },
+    ],
+  });
+  assert.equal(plan.schedules[0].paymentSteps.length, 2);
+  assert.equal(plan.mergedSteps.length, 2);
+  assert.equal(plan.mergedSteps[0].monthly, plan.schedules[0].paymentSteps[0].monthly);
+  assert.equal(plan.mergedSteps[1].monthly, plan.schedules[0].paymentSteps[1].monthly);
+});
+
+test('重定价：rateChanges 只记利率真正变化的时点，与月供档位分离', () => {
+  // 等额本金的月供每期都变，但利率不变时不应产生重定价点
+  const flat = buildSchedule({
+    ...BASE,
+    method: METHOD.EQUAL_PRINCIPAL,
+    annualRates: new Array(30).fill(0.035),
+  });
+  assert.equal(flat.paymentSteps.length, 30, '等额本金每年一个月供档位');
+  assert.equal(flat.rateChanges.length, 1, '利率未变只应有一次起点');
+
+  // 步长取 −10BP：30 年共降 2.9 个百分点（3.50% → 0.60%），不会触底
+  const down = buildSchedule({
+    ...BASE,
+    method: METHOD.EQUAL_PRINCIPAL,
+    annualRates: lprScenario({ base: 0.035, years: 30, stepBp: -10 }),
+  });
+  assert.equal(down.rateChanges.length, 30, '逐年变则每年一个重定价点');
+
+  const twoStep = buildSchedule({
+    ...BASE,
+    method: METHOD.EQUAL_PAYMENT,
+    annualRates: [0.035, 0.03],
+  });
+  assert.equal(twoStep.rateChanges.length, 2);
+  assert.equal(twoStep.rateChanges[1].period, 13);
+  assertNearlyEqual(twoStep.rateChanges[1].rate, 0.03, 1e-12, '重定价后的利率');
+});
+
+test('重定价：合并后的 rateChanges 保留各笔利率', () => {
+  const plan = buildPlan({
+    months: 240,
+    loans: [
+      { label: '公积金', principal: toCents(400_000), annualRates: [0.026], method: METHOD.EQUAL_PAYMENT },
+      {
+        label: '商业贷款',
+        principal: toCents(400_000),
+        annualRates: [0.035, 0.0325],
+        method: METHOD.EQUAL_PAYMENT,
+      },
+    ],
+  });
+  // 公积金只有起点，商贷有一次重定价 => 合并后 2 个点
+  assert.equal(plan.mergedRateChanges.length, 2);
+  assert.ok(Array.isArray(plan.mergedRateChanges[1].rates));
+  assert.equal(plan.mergedRateChanges[1].rates.length, 1, '重定价那一期只有商贷在变');
+  assertNearlyEqual(plan.mergedRateChanges[1].rates[0], 0.0325, 1e-12, '商贷新利率');
 });

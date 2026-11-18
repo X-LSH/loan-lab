@@ -65,3 +65,59 @@ export function parseRateInput(text) {
   }
   return value / 100;
 }
+
+/* ---------------------------------------------------------------
+   LPR 逐年重定价
+   合同结构：执行利率 = 重定价日适用的 LPR + 加点（加点整个合同期固定）
+   重定价周期为一年，即每 12 期取一次新 LPR。
+   --------------------------------------------------------------- */
+
+/**
+ * 把 LPR 路径 + 加点 换算成逐年执行利率。
+ * @param {number[]} lprPath 每年的 LPR（小数），不足 years 年时用最后一个值延伸
+ * @param {number} spreadBp 加点，单位基点（1BP = 0.01%），可为负
+ * @param {number} years 总年数
+ */
+export function ratesFromLprPath(lprPath, spreadBp, years) {
+  const base = Array.isArray(lprPath) && lprPath.length > 0 ? lprPath : [LPR_5Y];
+  const spread = Number(spreadBp) * BP;
+  const out = [];
+  for (let y = 0; y < years; y += 1) {
+    const lpr = base[Math.min(y, base.length - 1)];
+    out.push(Math.max(lpr + spread, 0));
+  }
+  return out;
+}
+
+/**
+ * 生成常见的 LPR 走势情景，避免用户一格一格手填。
+ * @param {object} opts
+ * @param {number} opts.base 起始 LPR
+ * @param {number} opts.years 年数
+ * @param {number} [opts.stepBp] 每年变动基点，0 = 不变，-25 = 逐年降 25BP
+ * @param {number} [opts.toRate] 终点 LPR（优先于 stepBp，用于"线性降到某值"）
+ */
+export function lprScenario({ base, years, stepBp = 0, toRate }) {
+  const out = [];
+  for (let y = 0; y < years; y += 1) {
+    if (toRate !== undefined && years > 1) {
+      const t = y / (years - 1);
+      out.push(Math.max(base + (toRate - base) * t, 0));
+    } else {
+      out.push(Math.max(base + y * stepBp * BP, 0));
+    }
+  }
+  return out;
+}
+
+/** 供 UI 展示：把逐年执行利率渲染成一行可读的摘要 */
+export function describeRatePath(rates, spreadBp) {
+  const first = rates[0] ?? LPR_5Y;
+  const last = rates[rates.length - 1] ?? first;
+  const spread = Number(spreadBp) * BP;
+  if (rates.length <= 1) {
+    return `固定 ${(first * 100).toFixed(3)}%${spread ? `（LPR ${((first - spread) * 100).toFixed(2)}% ${spreadBp >= 0 ? '+' : '−'}${Math.abs(spreadBp)}BP）` : ''}`;
+  }
+  const trend = Math.abs(last - first) < 1e-9 ? '各年相同' : last < first ? '逐年下行' : '逐年上行';
+  return `第 1 年 ${(first * 100).toFixed(3)}% → 第 ${rates.length} 年 ${(last * 100).toFixed(3)}% · ${trend}`;
+}

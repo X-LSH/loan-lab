@@ -4,19 +4,29 @@
  */
 
 import { buildPlan, compareMethods, aggregateByYear } from './core/plan.js';
-import { LPR_5Y, RATE_PRESETS, FUND_PRESETS, rateToBp, fundRateFor } from './core/rates.js';
+import {
+  LPR_5Y, RATE_PRESETS, FUND_PRESETS,
+  rateToBp, fundRateFor, ratesFromLprPath, describeRatePath,
+} from './core/rates.js';
 import { renderKpis, mountPayoffHighlight, updatePayoffHighlight, renderCompare } from './ui/summary.js';
 import { renderMonthlyTable, renderYearlyTable, renderPayoffTable, renderSplitNote } from './ui/tables.js';
-import { renderStackedBars, renderPayoffChart } from './ui/charts.js';
+import { renderStackedBars, renderPayoffChart, renderPaymentChart } from './ui/charts.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+const LPR_MAX_YEARS = 30;
 
 const state = {
   mode: 'commercial',
   scheduleView: 'year',
   monthlyLimit: 24,
   selectedMonth: 120,
+  // LPR 逐年重定价
+  lprEnabled: false,
+  lprSpreadBp: -45,
+  lprPath: Array.from({ length: LPR_MAX_YEARS }, () => LPR_5Y * 100),
+  lprScenario: 'flat',
 };
 
 let plan = null;
@@ -52,12 +62,19 @@ function collectLoans() {
     if (!Number.isFinite(ratePercent) || ratePercent < 0) {
       throw new Error(`${label}的年利率填写有误`);
     }
-    loans.push({
+    const loan = {
       label,
       principal: centsFromWan(wan),
-      annualRate: ratePercent / 100,
       method: $(`[data-method="${kind}"]`).value,
-    });
+    };
+    // LPR 重定价只作用于商业贷款；公积金走国家统一利率，不套 LPR
+    if (kind === 'commercial' && state.lprEnabled) {
+      const lprDecimals = state.lprPath.slice(0, term.years).map((v) => v / 100);
+      loan.annualRates = ratesFromLprPath(lprDecimals, state.lprSpreadBp, term.years);
+    } else {
+      loan.annualRate = ratePercent / 100;
+    }
+    loans.push(loan);
   };
 
   if (state.mode !== 'fund') push('commercial', '商业贷款');
@@ -127,8 +144,27 @@ function renderAll(years, { animate = false } = {}) {
 }
 
 function redrawCharts() {
+  renderPaymentChart($('#chart-payment'), plan.merged.rows, plan.mergedRateChanges);
   renderStackedBars($('#chart-composition'), aggregateByYear(plan.merged));
   renderPayoffChart($('#chart-payoff'), plan.payoff);
+  updatePaymentChartSub();
+}
+
+function updatePaymentChartSub() {
+  const el = $('#payment-chart-sub');
+  if (!el || !plan) return;
+  const changes = plan.mergedRateChanges;
+  if (changes.length > 1) {
+    const parts = changes.map(
+      (c) => `第 ${Math.ceil(c.period / 12)} 年起 ${(c.monthly / 100).toFixed(2)}`,
+    );
+    el.textContent = `月供随重定价变化：${parts.join(' → ')}。纵轴非零起点，只为看清台阶幅度。`;
+  } else {
+    el.textContent =
+      plan.schedules.some((s) => s.method === 'equal-principal')
+        ? '等额本金下月供逐月递减；当前未启用逐年重定价，故无台阶。纵轴非零起点。'
+        : '固定利率下月供恒定；启用「LPR 逐年重定价」后会出现台阶。纵轴非零起点。';
+  }
 }
 
 function renderScheduleTable() {
@@ -178,17 +214,33 @@ function updateShares() {
 function updateRateHints() {
   const months = Math.round(readNumber('[data-term]')) * 12 || 360;
 
-  const commercial = readNumber('[data-rate="commercial"]');
+  const commercialInput = $('[data-rate="commercial"]');
   const commercialHint = $('[data-rate-hint="commercial"]');
-  if (Number.isFinite(commercial)) {
-    const bp = rateToBp(commercial / 100, LPR_5Y);
-    if (Math.abs(bp) <= 300) {
-      commercialHint.textContent =
-        bp === 0
-          ? '等于 5 年期以上 LPR 基准 3.50%'
-          : `相当于 LPR 3.50% ${bp > 0 ? '加' : '减'} ${Math.abs(bp)} 个基点（${bp > 0 ? '+' : '−'}${Math.abs(bp)}BP）`;
-    } else {
-      commercialHint.textContent = '按固定年利率计算，与当前 LPR 偏离较大';
+
+  if (state.lprEnabled && state.mode !== 'fund') {
+    // 启用重定价后，商贷利率由 LPR + 加点推出，输入框改为只读
+    const firstRate = Math.max(state.lprPath[0] / 100 + state.lprSpreadBp * 0.0001, 0);
+    commercialInput.value = (firstRate * 100).toFixed(3);
+    commercialInput.readOnly = true;
+    commercialInput.classList.add('is-readonly');
+    commercialHint.textContent =
+      `= LPR ${state.lprPath[0].toFixed(2)}% ${state.lprSpreadBp >= 0 ? '+' : '−'}${Math.abs(state.lprSpreadBp)}BP` +
+      ` · 第 2 年起按新 LPR 重定价`;
+    updateLprSummary();
+  } else {
+    commercialInput.readOnly = false;
+    commercialInput.classList.remove('is-readonly');
+    const commercial = Number(commercialInput.value);
+    if (Number.isFinite(commercial)) {
+      const bp = rateToBp(commercial / 100, LPR_5Y);
+      if (Math.abs(bp) <= 300) {
+        commercialHint.textContent =
+          bp === 0
+            ? '等于 5 年期以上 LPR 基准 3.50%'
+            : `相当于 LPR 3.50% ${bp > 0 ? '加' : '减'} ${Math.abs(bp)} 个基点（${bp > 0 ? '+' : '−'}${Math.abs(bp)}BP）`;
+      } else {
+        commercialHint.textContent = '按固定年利率计算，与当前 LPR 偏离较大';
+      }
     }
   }
 
@@ -203,6 +255,51 @@ function updateRateHints() {
         ? `与公积金首套 ${tier}基准 ${(base * 100).toFixed(3)}% 一致`
         : `公积金首套 ${tier}基准 ${(base * 100).toFixed(3)}%，当前${bp > 0 ? '上浮' : '下浮'} ${Math.abs(bp)} 个基点`;
   }
+}
+
+/* ------------------------------------------------------------------ LPR 逐年重定价 */
+
+function renderLprGrid() {
+  const grid = $('[data-lpr-grid]');
+  const years = Math.min(Math.round(readNumber('[data-term]')) || 30, LPR_MAX_YEARS);
+  grid.innerHTML = Array.from({ length: years }, (_, i) => {
+    const value = state.lprPath[i];
+    const changed = Math.abs(value - LPR_5Y * 100) > 1e-9;
+    return `<label class="lpr-cell${changed ? ' is-changed' : ''}">
+      <span class="lpr-year">${i + 1}</span>
+      <input class="input num" type="number" inputmode="decimal" step="0.05" min="0" max="20"
+             value="${value.toFixed(2)}" data-lpr-year="${i}" aria-label="第 ${i + 1} 年 LPR" />
+    </label>`;
+  }).join('');
+}
+
+function updateLprSummary() {
+  const el = $('[data-lpr-summary]');
+  if (!el) return;
+  const years = Math.min(Math.round(readNumber('[data-term]')) || 30, LPR_MAX_YEARS);
+  const lprDecimals = state.lprPath.slice(0, years).map((v) => v / 100);
+  const rates = ratesFromLprPath(lprDecimals, state.lprSpreadBp, years);
+  el.textContent = `${describeRatePath(rates, state.lprSpreadBp)} · 共 ${years} 个重定价周期`;
+}
+
+function applyLprScenario(kind) {
+  const base = LPR_5Y * 100;
+  // 快捷情景只假设 10 年，之后持平。若按 30 年线性外推，-25BP/年 会把 LPR 减成负数，
+  // 看似精确实则荒谬；把预测窗口说清楚比假装能算 30 年更重要。
+  const HORIZON = 10;
+  const valueAt = (index, stepPercent) => {
+    const y = Math.min(index, HORIZON - 1);
+    return Math.max(base + y * stepPercent, 0);
+  };
+
+  if (kind === 'flat') state.lprPath = Array.from({ length: LPR_MAX_YEARS }, () => base);
+  if (kind === 'down') state.lprPath = Array.from({ length: LPR_MAX_YEARS }, (_, i) => valueAt(i, -0.25));
+  if (kind === 'up') state.lprPath = Array.from({ length: LPR_MAX_YEARS }, (_, i) => valueAt(i, 0.25));
+  state.lprScenario = kind;
+  $$('[data-lpr-scenario]').forEach((b) => b.classList.toggle('is-active', b.dataset.lprScenario === kind));
+  renderLprGrid();
+  updateRateHints();
+  recompute({ animate: true });
 }
 
 /* ------------------------------------------------------------------ 预设 */
@@ -273,6 +370,7 @@ function bindEvents() {
   });
 
   $('[data-term]').addEventListener('input', () => {
+    renderLprGrid();
     updateRateHints();
     scheduleRecompute();
   });
@@ -281,6 +379,7 @@ function bindEvents() {
     btn.addEventListener('click', () => {
       $('[data-term]').value = btn.dataset.termPreset;
       $$('[data-term-preset]').forEach((b) => b.classList.toggle('is-active', b === btn));
+      renderLprGrid();
       recompute({ animate: true });
     });
   });
@@ -303,6 +402,40 @@ function bindEvents() {
   // 主题切换
   $$('[data-theme-set]').forEach((btn) => {
     btn.addEventListener('click', () => applyTheme(btn.dataset.themeSet));
+  });
+
+  // LPR 逐年重定价
+  $('[data-lpr-enabled]').addEventListener('change', (event) => {
+    state.lprEnabled = event.target.checked;
+    $('[data-lpr-config]').hidden = !state.lprEnabled;
+    updateRateHints();
+    recompute({ animate: true });
+  });
+
+  $('[data-lpr-spread]').addEventListener('input', () => {
+    const raw = readNumber('[data-lpr-spread]');
+    state.lprSpreadBp = Number.isFinite(raw) ? raw : 0;
+    updateRateHints();
+    scheduleRecompute();
+  });
+
+  $$('[data-lpr-scenario]').forEach((btn) => {
+    btn.addEventListener('click', () => applyLprScenario(btn.dataset.lprScenario));
+  });
+
+  // 逐年 LPR 输入（事件委托，grid 会整体重绘）
+  $('[data-lpr-grid]').addEventListener('input', (event) => {
+    const input = event.target.closest('[data-lpr-year]');
+    if (!input) return;
+    const index = Number(input.dataset.lprYear);
+    const value = Number(input.value);
+    if (!Number.isFinite(value) || value < 0) return;
+    state.lprPath[index] = value;
+    input.closest('.lpr-cell')?.classList.toggle('is-changed', Math.abs(value - LPR_5Y * 100) > 1e-9);
+    state.lprScenario = 'custom';
+    $$('[data-lpr-scenario]').forEach((b) => b.classList.remove('is-active'));
+    updateRateHints();
+    scheduleRecompute();
   });
 
   // Tab 切换
@@ -364,10 +497,12 @@ function selectMonth(month) {
 
 function init() {
   renderPresets();
+  renderLprGrid();
   bindEvents();
   // head 里的内联脚本已按系统偏好或 localStorage 设好主题，这里只同步按钮状态
   applyTheme(document.documentElement.dataset.theme || 'dark');
   $$('[data-term-preset]').forEach((b) => b.classList.toggle('is-active', b.dataset.termPreset === '30'));
+  $$('[data-lpr-scenario]').forEach((b) => b.classList.toggle('is-active', b.dataset.lprScenario === 'flat'));
   updateRateHints();
   recompute({ animate: true });
 }

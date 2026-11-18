@@ -162,6 +162,52 @@
         <p class="field-note" id="total-amount-note"></p>
       </div>
 
+      <details class="advanced" id="lpr-section">
+        <summary>
+          <span>LPR 逐年重定价</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        </summary>
+        <div class="advanced-body">
+          <label class="switch">
+            <input type="checkbox" data-lpr-enabled />
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+            <span class="switch-text">商业贷款按 LPR + 加点逐年重定价</span>
+          </label>
+          <p class="field-note">
+            合同结构：<strong>执行利率 = 重定价日 LPR + 加点</strong>。加点整个合同期固定不变，
+            LPR 每 12 期（一年）重新取值，重定价后按剩余本金与剩余期数重算月供。
+            公积金贷款不走 LPR，仍按固定利率输入。
+          </p>
+
+          <div class="lpr-config" data-lpr-config hidden>
+            <div class="field">
+              <label class="field-label" for="lpr-spread">加点</label>
+              <div class="input-wrap">
+                <input id="lpr-spread" class="input num" type="number" inputmode="numeric" step="5" min="-300" max="300" value="-45" data-lpr-spread />
+                <span class="input-suffix">BP</span>
+              </div>
+              <p class="rate-hint" data-lpr-hint></p>
+            </div>
+
+            <div class="field">
+              <label class="field-label">LPR 走势<span class="unit">（快捷情景）</span></label>
+              <div class="chips">
+                <button type="button" class="chip" data-lpr-scenario="flat">保持不变</button>
+                <button type="button" class="chip" data-lpr-scenario="down">前 10 年逐年 −25BP</button>
+                <button type="button" class="chip" data-lpr-scenario="up">前 10 年逐年 +25BP</button>
+              </div>
+              <p class="field-note">快捷情景只作用于前 10 年，之后持平——更贴近实际预测窗口。需要更长的假设可直接改下方逐年数值。</p>
+            </div>
+
+            <div class="field">
+              <label class="field-label">逐年 LPR<span class="unit">（%）</span></label>
+              <div class="lpr-grid" data-lpr-grid></div>
+              <p class="field-note" data-lpr-summary></p>
+            </div>
+          </div>
+        </div>
+      </details>
+
       <details class="advanced">
         <summary>
           <span>提前结清条件</span>
@@ -205,6 +251,18 @@
 
     <!-- 还款计划 -->
     <div class="tab-panel is-active" data-panel="schedule">
+      <section class="card" id="card-payment">
+        <div class="card-head">
+          <div>
+            <h2>月供变化</h2>
+            <p class="card-sub" id="payment-chart-sub">
+              纵轴按月供实际范围放缩（非零起点），用于看清重定价造成的台阶；虚线标出每次重定价的位置。
+            </p>
+          </div>
+        </div>
+        <div class="chart-box" id="chart-payment"></div>
+      </section>
+
       <section class="card">
         <div class="card-head">
           <div>

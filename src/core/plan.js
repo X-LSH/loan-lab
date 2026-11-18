@@ -25,6 +25,7 @@ export function buildPlan(input) {
     buildSchedule({
       principal: loan.principal,
       annualRate: loan.annualRate,
+      annualRates: loan.annualRates,
       months,
       method: loan.method ?? METHOD.EQUAL_PAYMENT,
       label: loan.label,
@@ -40,6 +41,11 @@ export function buildPlan(input) {
     intervalMonths: 12,
   });
 
+  /** 合并后的月供轨迹：把各笔 paymentSteps 按期号对齐求和 */
+  const mergedSteps = buildMergedByPeriod(schedules, (s) => s.paymentSteps);
+  /** 合并后的利率变化点，供月供图画重定价竖线 */
+  const mergedRateChanges = buildMergedByPeriod(schedules, (s) => s.rateChanges);
+
   return {
     months,
     schedules,
@@ -47,6 +53,8 @@ export function buildPlan(input) {
     payoff,
     penaltyRate,
     penaltyFreeMonths,
+    mergedSteps,
+    mergedRateChanges,
     /** 首月两笔各自的构成，用于「月供拆解」展示 */
     firstMonthBreakdown: merged.rows[0]?.parts ?? [],
     /** 各笔在总贷款中的占比 */
@@ -55,10 +63,33 @@ export function buildPlan(input) {
       principal: s.principal,
       share: s.principal / merged.totals.principal,
       methodLabel: METHOD_LABEL[s.method],
-      annualRate: s.annualRate,
+      annualRates: s.annualRates,
+      rateLabel: s.annualRates.length > 1 ? '逐年重定价' : `${(s.annualRates[0] * 100).toFixed(3)}%`,
       totalInterest: s.summary.totalInterest,
+      firstPayment: s.summary.firstPayment,
     })),
   };
+}
+
+/**
+ * 把多笔的某类时点（月供档位 / 利率变化点）按期号对齐合并。
+ * 保留 rate 字段——上一版为了画图把 rate 丢了，导致图上一条重定价竖线都画不出来。
+ */
+function buildMergedByPeriod(schedules, pick) {
+  const byPeriod = new Map();
+  for (const s of schedules) {
+    for (const item of pick(s)) {
+      const entry = byPeriod.get(item.period) ?? {
+        period: item.period,
+        monthly: 0,
+        rates: [],
+      };
+      entry.monthly += item.monthly;
+      entry.rates.push(item.rate);
+      byPeriod.set(item.period, entry);
+    }
+  }
+  return [...byPeriod.values()].sort((a, b) => a.period - b.period);
 }
 
 /**
@@ -110,7 +141,14 @@ export function aggregateByYear(schedule) {
   schedule.rows.forEach((row, index) => {
     const y = Math.floor(index / 12);
     if (!years[y]) {
-      years[y] = { year: y + 1, principal: 0, interest: 0, payment: 0, balance: 0 };
+      years[y] = {
+        year: y + 1,
+        principal: 0,
+        interest: 0,
+        payment: 0,
+        balance: 0,
+        rate: row.annualRate,
+      };
     }
     years[y].principal += row.principal;
     years[y].interest += row.interest;

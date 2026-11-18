@@ -30,7 +30,9 @@ function axisLabel(cents) {
   if (wan >= 10000) return `${(wan / 10000).toFixed(1)}亿`;
   if (wan >= 100) return `${Math.round(wan)}万`;
   if (wan >= 10) return `${wan.toFixed(0)}万`;
-  return `${wan.toFixed(1)}万`;
+  if (wan >= 1) return `${wan.toFixed(1)}万`;
+  // 月供这类量级用「万」会全部糊成 0.3万，改用元
+  return Math.round(cents / 100).toLocaleString('zh-CN');
 }
 
 /**
@@ -164,6 +166,135 @@ export function renderStackedBars(container, years) {
   });
 
   mount(container, svg, '每年度偿还本金与利息的堆叠柱状图');
+}
+
+/**
+ * 月供变化曲线。
+ *
+ * 重定价会让月供出现台阶（等额本息）或斜率转折（等额本金）。
+ * 纵轴按实际月供范围放缩，不是从 0 起——否则几十块的跳变在百万级月供上看不出来，
+ * 副标题里会写明这一点，避免误导。
+ */
+export function renderPaymentChart(container, rows, rateChanges) {
+  const W = 840;
+  const H = 216;
+  const PAD = { top: 16, right: 16, bottom: 30, left: 60 };
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+
+  const svg = node('svg', {
+    viewBox: `0 0 ${W} ${H}`,
+    preserveAspectRatio: 'xMidYMid meet',
+  });
+
+  const pays = rows.map((r) => r.payment);
+  const rawMin = Math.min(...pays);
+  const rawMax = Math.max(...pays);
+  // 月供几乎不变时也撑开一点范围，避免整条线贴死在顶部
+  const span = Math.max(rawMax - rawMin, rawMax * 0.02);
+  const yMin = Math.max(rawMin - span * 0.4, 0);
+  const yMax = rawMax + span * 0.4;
+
+  const n = rows.length;
+  const xOf = (period) => PAD.left + ((period - 1) / Math.max(n - 1, 1)) * innerW;
+  const yOf = (v) => PAD.top + innerH - ((v - yMin) / Math.max(yMax - yMin, 1)) * innerH;
+
+  for (let i = 0; i <= 3; i += 1) {
+    const value = yMin + ((yMax - yMin) / 3) * i;
+    const y = yOf(value);
+    svg.append(
+      node('line', {
+        x1: PAD.left,
+        y1: y,
+        x2: W - PAD.right,
+        y2: y,
+        class: i === 0 ? 'grid-base' : 'grid-line',
+        'stroke-width': 1,
+      }),
+    );
+    svg.append(
+      text(axisLabel(value), {
+        x: PAD.left - 9,
+        y: y + 3.5,
+        'text-anchor': 'end',
+        'font-size': 10.5,
+        class: 'axis-text',
+      }),
+    );
+  }
+
+  // 月供曲线
+  const path = rows
+    .map((r, i) => `${i === 0 ? 'M' : 'L'}${xOf(r.period).toFixed(1)},${yOf(r.payment).toFixed(1)}`)
+    .join(' ');
+  svg.append(
+    node('path', {
+      d: path,
+      fill: 'none',
+      class: 'line-payment',
+      'stroke-width': 2,
+      'stroke-linejoin': 'round',
+      'stroke-linecap': 'round',
+    }),
+  );
+
+  // 重定价竖线。rateChanges 由计算层给出，只含利率真正变化的时点——
+  // 等额本金的月供每期都变，若每年都画竖线会把图糊住。
+  const repricePoints = rateChanges.slice(1);
+  let lastLabelRight = -Infinity;
+  repricePoints.forEach((change, idx) => {
+    const x = xOf(change.period);
+    svg.append(
+      node('line', {
+        x1: x,
+        y1: PAD.top,
+        x2: x,
+        y2: PAD.top + innerH,
+        class: 'marker-line',
+        'stroke-width': 1.2,
+        'stroke-dasharray': '3 3',
+      }),
+    );
+    svg.append(
+      node('circle', { cx: x, cy: yOf(change.monthly), r: 3, class: 'dot-end' }),
+    );
+
+    // 标签密度控制：点太密时只标一部分，竖线仍在，信息不丢；
+    // 再用上下交错降低叠字概率。文案只留利率数字，"重定价"三个字留给图例。
+    const rateLabel = change.rates.map((r) => `${(r * 100).toFixed(2)}%`).join('/');
+    const estimatedWidth = rateLabel.length * 5.4 + 10;
+    const labelX = x + 4;
+    if (labelX - lastLabelRight < 6) return;
+
+    const y = PAD.top + 11 + (idx % 2) * 12.5;
+    svg.append(
+      text(rateLabel, {
+        x: labelX,
+        y,
+        'font-size': 9.5,
+        class: 'marker-text',
+      }),
+    );
+    lastLabelRight = labelX + estimatedWidth;
+  });
+
+  // X 轴：年
+  const totalYears = Math.ceil(n / 12);
+  const tickEvery = totalYears > 20 ? 5 : totalYears > 10 ? 2 : 1;
+  for (let y = 0; y <= totalYears; y += tickEvery) {
+    const period = y === 0 ? 1 : Math.min(y * 12, n);
+    svg.append(
+      text(String(y), {
+        x: xOf(period),
+        y: H - 11,
+        'text-anchor': 'middle',
+        'font-size': 10.5,
+        class: 'axis-text',
+      }),
+    );
+  }
+
+  mount(container, svg, '月供随时间变化的曲线，标出每次重定价的位置');
 }
 
 /**
