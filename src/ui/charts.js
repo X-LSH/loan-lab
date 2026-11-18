@@ -297,6 +297,212 @@ export function renderPaymentChart(container, rows, rateChanges) {
   mount(container, svg, '月供随时间变化的曲线，标出每次重定价的位置');
 }
 
+/** 期数序列 -> 金额序列的前缀和（累计已付利息） */
+function cumulativeInterest(rows) {
+  const out = [];
+  let sum = 0;
+  for (const r of rows) {
+    sum += r.interest;
+    out.push(sum);
+  }
+  return out;
+}
+
+function buildAxes(svg, { n, yMin, yMax, PAD, W, H, xOf, yOf, gridClass = 'grid-line' }) {
+  for (let i = 0; i <= 3; i += 1) {
+    const value = yMin + ((yMax - yMin) / 3) * i;
+    const y = yOf(value);
+    svg.append(
+      node('line', {
+        x1: PAD.left, y1: y, x2: W - PAD.right, y2: y,
+        class: i === 0 ? 'grid-base' : gridClass, 'stroke-width': 1,
+      }),
+    );
+    svg.append(
+      text(axisLabel(value), {
+        x: PAD.left - 9, y: y + 3.5,
+        'text-anchor': 'end', 'font-size': 10.5, class: 'axis-text',
+      }),
+    );
+  }
+
+  const totalYears = Math.ceil(n / 12);
+  const tickEvery = totalYears > 20 ? 5 : totalYears > 10 ? 2 : 1;
+  for (let y = 0; y <= totalYears; y += tickEvery) {
+    const period = y === 0 ? 1 : Math.min(y * 12, n);
+    svg.append(
+      text(String(y), {
+        x: xOf(period), y: H - 11,
+        'text-anchor': 'middle', 'font-size': 10.5, class: 'axis-text',
+      }),
+    );
+  }
+}
+
+function linePath(values, xOf, yOf) {
+  return values
+    .map((v, i) => `${i === 0 ? 'M' : 'L'}${xOf(i + 1).toFixed(1)},${yOf(v).toFixed(1)}`)
+    .join(' ');
+}
+
+function areaBetween(valuesTop, valuesBottom, xOf, yOf) {
+  const top = valuesTop.map((v, i) => `${xOf(i + 1).toFixed(1)},${yOf(v).toFixed(1)}`);
+  const bottom = [...valuesBottom]
+    .map((v, i) => [i, v])
+    .reverse()
+    .map(([i, v]) => `${xOf(i + 1).toFixed(1)},${yOf(v).toFixed(1)}`);
+  return [...top, ...bottom].join(' ');
+}
+
+/**
+ * 月供压力对比：等额本息是平线，等额本金是斜坡。
+ * 两线之间的开口 = 前期要多扛的现金压力。
+ */
+export function renderPaymentCompareChart(container, rowsA, rowsB) {
+  const W = 760;
+  const H = 250;
+  const PAD = { top: 16, right: 18, bottom: 30, left: 60 };
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+
+  const svg = node('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'xMidYMid meet' });
+
+  const paysA = rowsA.map((r) => r.payment);
+  const paysB = rowsB.map((r) => r.payment);
+  const all = [...paysA, ...paysB];
+  const rawMin = Math.min(...all);
+  const rawMax = Math.max(...all);
+  const span = Math.max(rawMax - rawMin, rawMax * 0.02);
+  const yMin = Math.max(rawMin - span * 0.35, 0);
+  const yMax = rawMax + span * 0.35;
+
+  const n = Math.max(rowsA.length, rowsB.length);
+  const xOf = (period) => PAD.left + ((period - 1) / Math.max(n - 1, 1)) * innerW;
+  const yOf = (v) => PAD.top + innerH - ((v - yMin) / Math.max(yMax - yMin, 1)) * innerH;
+
+  buildAxes(svg, { n, yMin, yMax, PAD, W, H, xOf, yOf });
+
+  // 压力差：等额本金在下方，两线之间的面积是「省下的月供」
+  svg.append(
+    node('polygon', {
+      points: areaBetween(paysA, paysB, xOf, yOf),
+      class: 'area-saved',
+    }),
+  );
+
+  svg.append(
+    node('path', {
+      d: linePath(paysA, xOf, yOf), fill: 'none', class: 'line-plan',
+      'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-dasharray': '5 3',
+    }),
+  );
+  svg.append(
+    node('path', {
+      d: linePath(paysB, xOf, yOf), fill: 'none', class: 'line-settle',
+      'stroke-width': 2.2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round',
+    }),
+  );
+
+  // 图例放在右上角，左上角留给 Y 轴刻度，避免挤成一团
+  const legendY = PAD.top + 8;
+  const rightEdge = W - PAD.right;
+  svg.append(text('等额本金', {
+    x: rightEdge, y: legendY + 3.5, 'text-anchor': 'end', 'font-size': 10.5, class: 'axis-text',
+  }));
+  svg.append(node('line', {
+    x1: rightEdge - 52, y1: legendY, x2: rightEdge - 36, y2: legendY,
+    class: 'line-settle', 'stroke-width': 2.2,
+  }));
+  svg.append(text('等额本息', {
+    x: rightEdge - 80, y: legendY + 3.5, 'text-anchor': 'end', 'font-size': 10.5, class: 'axis-text',
+  }));
+  svg.append(node('line', {
+    x1: rightEdge - 134, y1: legendY, x2: rightEdge - 118, y2: legendY,
+    class: 'line-plan', 'stroke-width': 2, 'stroke-dasharray': '5 3',
+  }));
+
+  mount(container, svg, '两种还款方式的月供随时间变化对比');
+}
+
+/**
+ * 累计已付利息对比：两条曲线之间的面积就是等额本金省下的利息。
+ * 纵轴从 0 起，因为这是累计值，截断会夸大差距。
+ */
+export function renderInterestCompareChart(container, rowsA, rowsB) {
+  const W = 760;
+  const H = 250;
+  const PAD = { top: 16, right: 18, bottom: 30, left: 60 };
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+
+  const svg = node('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'xMidYMid meet' });
+
+  const intA = cumulativeInterest(rowsA);
+  const intB = cumulativeInterest(rowsB);
+  const yMax = niceScale(Math.max(intA.at(-1), intB.at(-1)));
+
+  const n = Math.max(rowsA.length, rowsB.length);
+  const xOf = (period) => PAD.left + ((period - 1) / Math.max(n - 1, 1)) * innerW;
+  const yOf = (v) => PAD.top + innerH - (v / yMax) * innerH;
+
+  buildAxes(svg, { n, yMin: 0, yMax, PAD, W, H, xOf, yOf });
+
+  // 省息面积
+  svg.append(
+    node('polygon', {
+      points: areaBetween(intA, intB, xOf, yOf),
+      class: 'area-saved',
+    }),
+  );
+
+  svg.append(
+    node('path', {
+      d: linePath(intA, xOf, yOf), fill: 'none', class: 'line-plan',
+      'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-dasharray': '5 3',
+    }),
+  );
+  svg.append(
+    node('path', {
+      d: linePath(intB, xOf, yOf), fill: 'none', class: 'line-settle',
+      'stroke-width': 2.2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round',
+    }),
+  );
+
+  // 终点标注：两条线各自累计利息
+  svg.append(
+    text(axisLabel(intA.at(-1)), {
+      x: xOf(n) - 4, y: yOf(intA.at(-1)) - 8,
+      'text-anchor': 'end', 'font-size': 10.5, class: 'label-plan', 'font-weight': 600,
+    }),
+  );
+  svg.append(
+    text(axisLabel(intB.at(-1)), {
+      x: xOf(n) - 4, y: yOf(intB.at(-1)) + 15,
+      'text-anchor': 'end', 'font-size': 10.5, class: 'marker-text', 'font-weight': 600,
+    }),
+  );
+
+  // 图例与月供图保持一致
+  const legendY = PAD.top + 8;
+  const rightEdge = W - PAD.right;
+  svg.append(text('等额本金', {
+    x: rightEdge, y: legendY + 3.5, 'text-anchor': 'end', 'font-size': 10.5, class: 'axis-text',
+  }));
+  svg.append(node('line', {
+    x1: rightEdge - 52, y1: legendY, x2: rightEdge - 36, y2: legendY,
+    class: 'line-settle', 'stroke-width': 2.2,
+  }));
+  svg.append(text('等额本息', {
+    x: rightEdge - 80, y: legendY + 3.5, 'text-anchor': 'end', 'font-size': 10.5, class: 'axis-text',
+  }));
+  svg.append(node('line', {
+    x1: rightEdge - 134, y1: legendY, x2: rightEdge - 118, y2: legendY,
+    class: 'line-plan', 'stroke-width': 2, 'stroke-dasharray': '5 3',
+  }));
+
+  mount(container, svg, '两种还款方式的累计已付利息对比');
+}
+
 /**
  * 提前结清双线图。
  *

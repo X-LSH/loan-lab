@@ -95,7 +95,8 @@ try {
   check('利率 3.50% 时总利息 61.66 万', (await text('.kpi:nth-child(3) .kpi-value .num')) === '61.66');
   check('利率提示换算为 LPR 基准', (await text('[data-rate-hint="commercial"]')).includes('基准'));
 
-  check('三个图表已绘制（月供 / 构成 / 结清）', (await count('.chart-box svg')) === 3, String(await count('.chart-box svg')));
+  check('五个图表已绘制（月供 / 构成 / 结清 / 月供对比 / 利息对比）',
+    (await count('.chart-box svg')) === 5, String(await count('.chart-box svg')));
 
   /* ---------------------------------------------- 2. 还款计划 */
   check('年度表默认展开 30 行', (await count('#schedule-table tbody tr')) === 30);
@@ -166,6 +167,9 @@ try {
 
   check('组合贷总额为 100 万', (await text('.kpi:nth-child(1) .kpi-value .num')) === '100.00');
   check('显示两笔的占比拆解', (await count('#split-note .split-item')) === 2);
+  const splitText = await text('#split-note');
+  check('拆解条不含 NaN', !splitText.includes('NaN'), splitText.slice(0, 90));
+  check('拆解条显示利率', /\d+(\.\d+)?%|逐年重定价/.test(splitText), splitText.slice(0, 90));
 
   const comboPayment = Number((await text('.kpi:nth-child(2) .kpi-value .num')).replace(/,/g, ''));
   check('组合贷月供低于纯商贷（公积金占比拉低）', comboPayment > 0 && comboPayment < 4490.45, String(comboPayment));
@@ -277,7 +281,75 @@ try {
   check('关闭 LPR 重定价后利率恢复可写',
     await cdp.eval(`!document.querySelector('[data-rate="commercial"]').readOnly`));
 
-  /* ---------------------------------------------- 9. 主题切换 */
+  /* ---------------------------------------------- 9. 公积金额度约束 */
+  await cdp.click('.seg-btn[data-mode="combo"]');
+  await settle(720);
+  await cdp.click('.tab[data-tab="schedule"]');
+  await settle(240);
+
+  const quotaText = await text('[data-quota-info]');
+  check('青岛默认双缴存上限 130 万', quotaText.includes('130.00'), quotaText);
+
+  await cdp.eval(`(() => {
+    const el = document.querySelector('[data-fund-scope]');
+    el.value = 'single';
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  await settle(560);
+  check('单缴存上限 90 万', (await text('[data-quota-info]')).includes('90.00'));
+
+  await cdp.eval(`(() => {
+    const el = document.querySelector('[data-fund-scope]');
+    el.value = 'couple';
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  await settle(560);
+  await cdp.click('[data-uplift="multiChild"]');
+  await settle(560);
+  check('多子女上浮 30% 后为 169 万', (await text('[data-quota-info]')).includes('169.00'));
+
+  await cdp.setInput('[data-amount="fund"]', '200');
+  await settle(560);
+  check('超限显示警告', await cdp.eval(`!document.querySelector('[data-quota-warning]').hidden`));
+  check('警告内含一键裁剪按钮', (await count('[data-quota-clip]')) === 1);
+
+  await cdp.click('[data-quota-clip]');
+  await settle(620);
+  check('裁剪后金额等于上限 169', (await value('[data-amount="fund"]')) === '169',
+    String(await value('[data-amount="fund"]')));
+  check('裁剪后警告消失', await cdp.eval(`document.querySelector('[data-quota-warning]').hidden`));
+
+  await cdp.eval(`(() => {
+    const el = document.querySelector('[data-fund-city]');
+    el.value = 'shanghai';
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  await settle(620);
+  check('切到上海后上限 200 万', (await text('[data-quota-info]')).includes('200.00'));
+
+  await cdp.eval(`(() => {
+    const el = document.querySelector('[data-fund-city]');
+    el.value = 'qingdao';
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  await settle(560);
+
+  /* ---------------------------------------------- 10. 还款方式对比图 */
+  await cdp.click('.tab[data-tab="compare"]');
+  await settle(560);
+  check('对比图各含两条曲线', await cdp.eval(`
+    document.querySelectorAll('#chart-cmp-payment path').length === 2 &&
+    document.querySelectorAll('#chart-cmp-interest path').length === 2
+  `));
+  check('对比图含省息面积填充', await cdp.eval(`
+    document.querySelectorAll('#chart-cmp-payment polygon').length >= 1 &&
+    document.querySelectorAll('#chart-cmp-interest polygon').length >= 1
+  `));
+  check('累计利息图标注终值', await cdp.eval(`
+    [...document.querySelectorAll('#chart-cmp-interest text')].some(t => /万|\\d{3}/.test(t.textContent))
+  `));
+
+  /* ---------------------------------------------- 11. 主题切换 */
   const bgLight = await cdp.eval('getComputedStyle(document.body).backgroundColor');
   await cdp.click('[data-theme-set="dark"]');
   await settle(620);
@@ -299,7 +371,7 @@ try {
   check('主题切换后数值仍正确',
     (await text('.kpi:nth-child(2) .kpi-value .num')).length > 0);
 
-  /* ---------------------------------------------- 10. 最终健康检查 */
+  /* ---------------------------------------------- 12. 最终健康检查 */
   check('全程无未捕获异常', cdp.exceptions.length === 0, cdp.exceptions.join(' | ') || '无');
   check('全程无控制台错误', cdp.consoleErrors.length === 0, cdp.consoleErrors.join(' | ') || '无');
   check('关键资源均已加载',

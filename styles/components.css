@@ -911,6 +911,12 @@ input[type="range"].slider::-moz-range-thumb {
 }
 
 /* ---------------- 方式对比 ---------------- */
+.cmp-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+
 .cmp-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1104,6 +1110,68 @@ input[type="range"].slider::-moz-range-thumb {
   color: var(--accent-ink);
 }
 
+/* ---------------- 公积金额度 ---------------- */
+.quota-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.select-sm {
+  padding: 7px 26px 7px 9px;
+  font-size: var(--fs-xs);
+}
+
+.quota-info {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  margin-top: 7px;
+  line-height: 1.6;
+}
+
+.quota-info strong {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+.quota-warning {
+  margin-top: 8px;
+  padding: 9px 11px;
+  border-radius: var(--r-sm);
+  background: var(--warn-soft);
+  border: 1px solid color-mix(in srgb, var(--warn) 32%, transparent);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  color: var(--warn);
+}
+
+.quota-warning strong {
+  font-weight: 700;
+}
+
+.btn-clip {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: var(--warn);
+  color: var(--surface);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  transition: opacity var(--dur-fast), transform var(--dur) var(--ease-spring);
+}
+
+.btn-clip:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.btn-clip:active {
+  transform: none;
+}
+
 /* ---------------- 响应式 ---------------- */
 @media (max-width: 1120px) {
   .kpis {
@@ -1115,6 +1183,10 @@ input[type="range"].slider::-moz-range-thumb {
   }
 
   .cmp-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cmp-chart-grid {
     grid-template-columns: 1fr;
   }
 }

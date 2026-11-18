@@ -8,9 +8,12 @@ import {
   LPR_5Y, RATE_PRESETS, FUND_PRESETS,
   rateToBp, fundRateFor, ratesFromLprPath, describeRatePath,
 } from './core/rates.js';
+import {
+  FUND_CITIES, DEFAULT_CITY_ID, getCity, resolveQuota, describeQuota,
+} from './core/quota.js';
 import { renderKpis, mountPayoffHighlight, updatePayoffHighlight, renderCompare } from './ui/summary.js';
 import { renderMonthlyTable, renderYearlyTable, renderPayoffTable, renderSplitNote } from './ui/tables.js';
-import { renderStackedBars, renderPayoffChart, renderPaymentChart } from './ui/charts.js';
+import { renderStackedBars, renderPayoffChart, renderPaymentChart, renderPaymentCompareChart, renderInterestCompareChart } from './ui/charts.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -27,6 +30,11 @@ const state = {
   lprSpreadBp: -45,
   lprPath: Array.from({ length: LPR_MAX_YEARS }, () => LPR_5Y * 100),
   lprScenario: 'flat',
+  // 公积金额度政策
+  fundCity: DEFAULT_CITY_ID,
+  fundScope: 'couple',
+  fundUplifts: [],
+  fundQuota: null,
 };
 
 let plan = null;
@@ -126,6 +134,7 @@ function renderAll(years, { animate = false } = {}) {
   renderSplitNote($('#split-note'), plan);
   updateTermNote(years);
   updateShares();
+  updateQuota();
 
   if (!highlightRefs) {
     highlightRefs = mountPayoffHighlight($('#payoff-highlight'), plan);
@@ -147,6 +156,10 @@ function redrawCharts() {
   renderPaymentChart($('#chart-payment'), plan.merged.rows, plan.mergedRateChanges);
   renderStackedBars($('#chart-composition'), aggregateByYear(plan.merged));
   renderPayoffChart($('#chart-payoff'), plan.payoff);
+  if (cmp) {
+    renderPaymentCompareChart($('#chart-cmp-payment'), cmp.equalPayment.rows, cmp.equalPrincipal.rows);
+    renderInterestCompareChart($('#chart-cmp-interest'), cmp.equalPayment.rows, cmp.equalPrincipal.rows);
+  }
   updatePaymentChartSub();
 }
 
@@ -302,6 +315,65 @@ function applyLprScenario(kind) {
   recompute({ animate: true });
 }
 
+/* ------------------------------------------------------------------ 公积金额度 */
+
+function renderFundQuota() {
+  const citySelect = $('[data-fund-city]');
+  citySelect.innerHTML = FUND_CITIES.map(
+    (c) => `<option value="${c.id}"${c.id === state.fundCity ? ' selected' : ''}>${c.name}</option>`,
+  ).join('');
+  $('[data-fund-scope]').value = state.fundScope;
+  renderUplifts();
+}
+
+function renderUplifts() {
+  const city = getCity(state.fundCity);
+  $('[data-uplifts]').innerHTML = city.uplifts
+    .map((u) => {
+      const active = state.fundUplifts.includes(u.id);
+      return `<button type="button" class="chip${active ? ' is-active' : ''}" data-uplift="${u.id}"
+                aria-pressed="${active}">+${Math.round(u.rate * 100)}% ${u.label}</button>`;
+    })
+    .join('');
+}
+
+/**
+ * 计算并展示额度上限。这是「提示不阻断」——工具用于测算，
+ * 用户有权模拟超出实际上限的方案，但必须知道自己超了多少。
+ */
+function updateQuota() {
+  const result = resolveQuota({
+    cityId: state.fundCity,
+    isCouple: state.fundScope === 'couple',
+    upliftIds: state.fundUplifts,
+  });
+  state.fundQuota = result;
+
+  const info = $('[data-quota-info]');
+  if (info) {
+    info.innerHTML =
+      `当前上限 <strong>${result.final.toFixed(2)} 万元</strong> · ` +
+      `${describeQuota(result)}<br />` +
+      `${result.city.notes[0]}。实际可贷额度还需按账户余额倍数与还贷能力取最低，此处仅校验上限。`;
+  }
+
+  const warn = $('[data-quota-warning]');
+  if (!warn) return;
+  const amount = readNumber('[data-amount="fund"]');
+  const over = Number.isFinite(amount) ? amount - result.final : -Infinity;
+
+  if (over > 1e-9) {
+    warn.hidden = false;
+    warn.innerHTML =
+      `已超出当地上限 <strong>${over.toFixed(2)} 万元</strong>（${result.city.name} ${result.final.toFixed(2)} 万）。` +
+      `这是测算工具，可以继续算，但实际申请会被拒绝。<br />` +
+      `<button type="button" class="btn-clip" data-quota-clip>裁剪到 ${result.final.toFixed(2)} 万</button>`;
+  } else {
+    warn.hidden = true;
+    warn.innerHTML = '';
+  }
+}
+
 /* ------------------------------------------------------------------ 预设 */
 
 function renderPresets() {
@@ -438,6 +510,43 @@ function bindEvents() {
     scheduleRecompute();
   });
 
+  // 公积金额度政策
+  $('[data-fund-city]').addEventListener('change', (event) => {
+    state.fundCity = event.target.value;
+    // 换城市后上浮项可能不同，清掉旧选择避免留着无效勾选
+    state.fundUplifts = [];
+    renderUplifts();
+    updateQuota();
+    recompute({ animate: true });
+  });
+
+  $('[data-fund-scope]').addEventListener('change', (event) => {
+    state.fundScope = event.target.value;
+    updateQuota();
+    recompute({ animate: true });
+  });
+
+  $('[data-uplifts]').addEventListener('click', (event) => {
+    const chip = event.target.closest('[data-uplift]');
+    if (!chip) return;
+    const id = chip.dataset.uplift;
+    state.fundUplifts = state.fundUplifts.includes(id)
+      ? state.fundUplifts.filter((x) => x !== id)
+      : [...state.fundUplifts, id];
+    renderUplifts();
+    updateQuota();
+    recompute({ animate: true });
+  });
+
+  // 一键裁剪到上限
+  $('[data-quota-warning]').addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-quota-clip]');
+    if (!btn || !state.fundQuota) return;
+    $('[data-amount="fund"]').value = String(state.fundQuota.final);
+    updateQuota();
+    recompute({ animate: true });
+  });
+
   // Tab 切换
   $$('.tab').forEach((tab) => {
     tab.addEventListener('click', () => {
@@ -498,6 +607,7 @@ function selectMonth(month) {
 function init() {
   renderPresets();
   renderLprGrid();
+  renderFundQuota();
   bindEvents();
   // head 里的内联脚本已按系统偏好或 localStorage 设好主题，这里只同步按钮状态
   applyTheme(document.documentElement.dataset.theme || 'dark');

@@ -114,6 +114,26 @@ try {
   await sleep(400);
   await shot('10-lpr-monthly-dark.png');
 
+  // 公积金额度约束场景
+  await cdp.setViewport(1440, 1000);
+  await cdp.navigate(APP_URL);
+  await sleep(850);
+  await cdp.click('[data-theme-set="dark"]');
+  await sleep(700);
+  await cdp.click('.seg-btn[data-mode="combo"]');
+  await sleep(700);
+  await cdp.click('[data-uplift="multiChild"]');
+  await sleep(500);
+  await cdp.setInput('[data-amount="fund"]', '169');
+  await cdp.setInput('[data-amount="commercial"]', '40');
+  await sleep(600);
+  await shot('11-quota-dark.png');
+
+  // 还款方式对比图
+  await cdp.click('.tab[data-tab="compare"]');
+  await sleep(600);
+  await shot('12-compare-dark.png');
+
   // 浅色主题抽查两屏
   await cdp.setViewport(1440, 1000);
   await cdp.navigate(APP_URL);

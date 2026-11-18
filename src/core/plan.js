@@ -64,7 +64,10 @@ export function buildPlan(input) {
       share: s.principal / merged.totals.principal,
       methodLabel: METHOD_LABEL[s.method],
       annualRates: s.annualRates,
-      rateLabel: s.annualRates.length > 1 ? '逐年重定价' : `${(s.annualRates[0] * 100).toFixed(3)}%`,
+      rateLabel:
+        s.annualRates.length > 1
+          ? '逐年重定价'
+          : `${(s.annualRates[0] * 100).toFixed(2).replace(/\.?0+$/, '')}%`,
       totalInterest: s.summary.totalInterest,
       firstPayment: s.summary.firstPayment,
     })),

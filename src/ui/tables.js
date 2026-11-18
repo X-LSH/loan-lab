@@ -107,7 +107,7 @@ export function renderSplitNote(el, plan) {
       (w) => `<div class="split-item">
         <span class="split-name">${w.label}</span>
         <span class="split-val num">${yuan(w.principal)}</span>
-        <span class="split-meta">占 ${(w.share * 100).toFixed(1)}% · ${w.methodLabel} · 年利率 ${(w.annualRate * 100).toFixed(3).replace(/0+$/, '').replace(/\.$/, '')}% · 利息 ${yuan(w.totalInterest)}</span>
+        <span class="split-meta">占 ${(w.share * 100).toFixed(1)}% · ${w.methodLabel} · ${w.rateLabel} · 利息 ${yuan(w.totalInterest)}</span>
       </div>`,
     )
     .join('');

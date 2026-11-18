@@ -118,6 +118,20 @@
         </div>
 
         <div class="field">
+          <label class="field-label">额度政策</label>
+          <div class="quota-controls">
+            <select class="select select-sm" data-fund-city aria-label="所在城市"></select>
+            <select class="select select-sm" data-fund-scope aria-label="缴存情况">
+              <option value="couple">双缴存</option>
+              <option value="single">单缴存</option>
+            </select>
+          </div>
+          <div class="chips" data-uplifts></div>
+          <p class="quota-info" data-quota-info></p>
+          <div class="quota-warning" data-quota-warning hidden></div>
+        </div>
+
+        <div class="field">
           <label class="field-label" for="fund-amount">贷款金额</label>
           <div class="input-wrap">
             <input id="fund-amount" class="input num" type="number" inputmode="decimal" step="0.5" min="0" value="60" data-amount="fund" />
@@ -330,10 +344,32 @@
 
     <!-- 方式对比 -->
     <div class="tab-panel" data-panel="compare">
+      <div class="cmp-chart-grid">
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2>月供压力对比</h2>
+              <p class="card-sub">等额本息月供固定，等额本金逐月递减。两条线的开口就是前期要多扛的现金压力。</p>
+            </div>
+          </div>
+          <div class="chart-box" id="chart-cmp-payment"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2>累计已付利息对比</h2>
+              <p class="card-sub">两条曲线之间的面积就是等额本金省下的利息。差距主要在还款后半程拉开。</p>
+            </div>
+          </div>
+          <div class="chart-box" id="chart-cmp-interest"></div>
+        </section>
+      </div>
+
       <section class="card">
         <div class="card-head">
           <div>
-            <h2>等额本息 vs 等额本金</h2>
+            <h2>数字明细</h2>
             <p class="card-sub">同一笔贷款、同一利率与期限下的两条路径（组合贷按两笔同时切换计算）</p>
           </div>
         </div>

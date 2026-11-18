@@ -6,7 +6,7 @@
   "description": "房贷测算台：等额本息 / 等额本金 / 组合贷 / 提前结清测算",
   "scripts": {
     "start": "node tools/serve.mjs",
-    "test": "node --test tests/core.test.mjs",
+    "test": "node --test tests/core.test.mjs tests/quota.test.mjs",
     "smoke": "node tools/smoke.mjs"
   }
 }
