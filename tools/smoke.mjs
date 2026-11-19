@@ -372,6 +372,19 @@ try {
   await settle(620);
   check('主题可切回浅色', (await cdp.eval('document.documentElement.dataset.theme')) === 'light');
 
+  await cdp.click('[data-theme-set="xiaomi"]');
+  await settle(620);
+  check('主题可切到小米', (await cdp.eval('document.documentElement.dataset.theme')) === 'xiaomi');
+  check('小米主题使用橙色强调', await cdp.eval(`(() => {
+    const a = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    return a.startsWith('#ff') || a.startsWith('rgb(255');
+  })()`));
+  check('小米主题圆角更圆润', await cdp.eval(`(() => {
+    const card = document.querySelector('.card');
+    return !!card && parseFloat(getComputedStyle(card).borderRadius) >= 22;
+  })()`));
+  check('小米主题偏好已记录', (await cdp.eval(`localStorage.getItem('loanlab-theme')`)) === 'xiaomi');
+
   await cdp.click('[data-theme-set="dark"]');
   await settle(620);
   check('主题切换后数值仍正确',

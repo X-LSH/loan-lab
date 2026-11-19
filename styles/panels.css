@@ -659,3 +659,83 @@ input[type="range"].slider::-moz-range-thumb {
   .seg-btn { font-size: var(--fs-cap); padding: 9px 2px; }
   .kpi-value { font-size: 22px; }
 }
+
+/* ---------------- 小米主题专属质感 ----------------
+   HyperOS 的辨识度来自渐变点缀与带色温的悬浮感，
+   而不是 Apple 那种冷静的半透明材质。
+   ---------------------------------------------------- */
+:root[data-theme="xiaomi"] .kpi::before {
+  height: 3px;
+}
+
+/* 渐变是小米的特色，但不能抹掉 KPI 的语义区分 —— 每个 tone 用自己的渐变 */
+:root[data-theme="xiaomi"] .kpi[data-tone="neutral"]::before {
+  background: linear-gradient(90deg, var(--ink-4), var(--line-strong));
+}
+
+:root[data-theme="xiaomi"] .kpi[data-tone="principal"]::before {
+  background: linear-gradient(90deg, var(--principal), #7cb5ff);
+}
+
+:root[data-theme="xiaomi"] .kpi[data-tone="interest"]::before {
+  background: linear-gradient(90deg, var(--interest), #ffc46b);
+}
+
+:root[data-theme="xiaomi"] .kpi[data-tone="accent"]::before {
+  background: linear-gradient(90deg, var(--accent), var(--interest));
+}
+
+:root[data-theme="xiaomi"] .kpi {
+  border-radius: var(--r-lg);
+  transition: transform var(--dur) var(--ease-spring), box-shadow var(--dur) var(--ease-out);
+}
+
+:root[data-theme="xiaomi"] .kpi:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 34px rgba(255, 105, 0, 0.16);
+}
+
+:root[data-theme="xiaomi"] .card {
+  border-radius: var(--r-xl);
+}
+
+:root[data-theme="xiaomi"] .card-emphasis {
+  border-left: 3px solid var(--saved);
+  background: linear-gradient(135deg, var(--saved-soft), var(--surface) 50%);
+}
+
+:root[data-theme="xiaomi"] .tab.is-active::after {
+  background: linear-gradient(90deg, var(--accent), var(--interest));
+  height: 3px;
+}
+
+:root[data-theme="xiaomi"] .cmp-verdict {
+  background: linear-gradient(135deg, var(--saved-soft), rgba(0, 196, 140, 0.05));
+  border-radius: var(--r-lg);
+}
+
+:root[data-theme="xiaomi"] .hl-item:first-child {
+  border-left-color: var(--accent);
+}
+
+:root[data-theme="xiaomi"] .quota-warning {
+  border-radius: var(--r-md);
+}
+
+:root[data-theme="xiaomi"] .brand-mark {
+  background: linear-gradient(145deg, #ff8a3d, var(--accent));
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 5px 16px rgba(255, 105, 0, 0.3);
+}
+
+:root[data-theme="xiaomi"] .switch input:checked + .switch-track {
+  background: linear-gradient(90deg, var(--accent), var(--interest));
+}
+
+:root[data-theme="xiaomi"] .btn-clip {
+  background: linear-gradient(135deg, var(--accent), var(--interest));
+  border-radius: var(--r-pill);
+  box-shadow: 0 5px 16px rgba(255, 105, 0, 0.28);
+}

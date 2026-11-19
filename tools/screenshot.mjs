@@ -145,6 +145,17 @@ try {
   await cdp.click('.tab[data-tab="payoff"]');
   await sleep(500);
   await shot('08-payoff-light.png');
+
+  // 小米主题
+  await cdp.click('[data-theme-set="xiaomi"]');
+  await sleep(700);
+  await cdp.click('.tab[data-tab="schedule"]');
+  await sleep(400);
+  await shot('13-overview-xiaomi.png');
+
+  await cdp.click('.tab[data-tab="compare"]');
+  await sleep(500);
+  await shot('14-compare-xiaomi.png');
 } finally {
   try {
     await cdp.send('Browser.close');

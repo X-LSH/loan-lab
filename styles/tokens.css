@@ -140,3 +140,64 @@
   --shadow-lg: 0 20px 56px rgba(0, 0, 0, 0.18);
   --inset-hi: inset 0 0.5px 0 rgba(255, 255, 255, 0.8);
 }
+
+/* ---------------- 小米 / HyperOS 主题 ----------------
+   与 Apple 的冷静材质不同，小米的设计语言是明亮通透 + 品牌橙 +
+   更圆润的形状 + 带色温的阴影。圆角整体大一档，强调色走渐变。
+   ---------------------------------------------------- */
+:root[data-theme="xiaomi"] {
+  color-scheme: light;
+
+  --bg: #f3f5f8;
+  --bg-sunken: #e9ecf1;
+  --surface: #ffffff;
+  --surface-2: #f7f9fb;
+  --surface-3: #edf0f4;
+  --surface-hi: #e2e6ec;
+  --glass: rgba(255, 255, 255, 0.8);
+  --glass-thick: rgba(255, 255, 255, 0.92);
+
+  --line: rgba(23, 26, 31, 0.08);
+  --line-strong: rgba(23, 26, 31, 0.15);
+  --line-hair: rgba(23, 26, 31, 0.06);
+
+  --ink: #171a1f;
+  --ink-2: #5c6470;
+  --ink-3: #8b939f;
+  --ink-4: #b9c0c9;
+
+  /* 小米橙 */
+  --accent: #ff6900;
+  --accent-ink: #e85d00;
+  --accent-deep: #c94f00;
+  --accent-soft: rgba(255, 105, 0, 0.12);
+  --accent-ring: rgba(255, 105, 0, 0.3);
+
+  /* 语义色：比 Apple 更明快 */
+  --principal: #3d7eff;
+  --principal-soft: rgba(61, 126, 255, 0.12);
+  --interest: #ff9500;
+  --interest-soft: rgba(255, 149, 0, 0.13);
+  --saved: #00c48c;
+  --saved-soft: rgba(0, 196, 140, 0.12);
+  --saved-ink: #009e70;
+  --warn: #ff4d4f;
+  --warn-soft: rgba(255, 77, 79, 0.11);
+
+  /* 圆角整体大一档，HyperOS 的形状比 Apple 更圆润 */
+  --r-xs: 10px;
+  --r-sm: 14px;
+  --r-md: 20px;
+  --r-lg: 26px;
+  --r-xl: 34px;
+
+  /* 阴影带色温，偏橙，制造"悬浮"感 */
+  --shadow-xs: 0 2px 10px rgba(255, 105, 0, 0.07);
+  --shadow-sm: 0 4px 18px rgba(255, 105, 0, 0.1);
+  --shadow: 0 12px 36px rgba(255, 105, 0, 0.13);
+  --shadow-lg: 0 24px 64px rgba(255, 105, 0, 0.18);
+  --inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  --gap: 22px;
+  --pad-card: 22px;
+}

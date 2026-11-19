@@ -412,8 +412,10 @@ function setMode(mode) {
   recompute({ animate: true });
 }
 
+const THEMES = ['dark', 'light', 'xiaomi'];
+
 function applyTheme(theme) {
-  const next = theme === 'light' ? 'light' : 'dark';
+  const next = THEMES.includes(theme) ? theme : 'dark';
   document.documentElement.dataset.theme = next;
   try {
     localStorage.setItem('loanlab-theme', next);
