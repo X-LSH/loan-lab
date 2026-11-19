@@ -384,6 +384,17 @@ try {
     return !!card && parseFloat(getComputedStyle(card).borderRadius) >= 22;
   })()`));
   check('小米主题偏好已记录', (await cdp.eval(`localStorage.getItem('loanlab-theme')`)) === 'xiaomi');
+  check('小米主题 KPI 可横向滑动', await cdp.eval(`(() => {
+    const k = document.querySelector('.kpis');
+    return k.scrollWidth > k.clientWidth;
+  })()`), await cdp.eval(`(() => {
+    const k = document.querySelector('.kpis');
+    return k.scrollWidth + ' vs ' + k.clientWidth;
+  })()`));
+  check('小米主题输入面板卡片化', await cdp.eval(`(() => {
+    const p = document.querySelector('.panel-input');
+    return getComputedStyle(p).backgroundColor === 'rgba(0, 0, 0, 0)';
+  })()`));
 
   await cdp.click('[data-theme-set="dark"]');
   await settle(620);

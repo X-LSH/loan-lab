@@ -126,6 +126,11 @@ LPR 走势是假设，不是预测。快捷情景只作用于前 10 年（更贴
 Apple 那两套强调色保留铜色（产品的识别色）但质感对齐系统强调色；
 小米那套则是完整的品牌橙体系，圆角整体大一档，强调元素走渐变。
 
+**小米主题还带布局变体**（不只换肤）：KPI 变成横向滑动的大卡片
+（`scroll-snap`，固定 264px 宽，第 4 张自然溢出以暗示可滑动），
+输入面板拆成独立卡片流（贷款构成 / 金额 / 期限 / 高级设置各自成卡）。
+Apple 两套仍是标准双栏 + 四列 KPI 网格，结构不受影响。
+
 主题由 CSS 变量驱动，图表的渐变 `stop-color` 同样走变量，切换时无需重绘。
 
 几个刻意的取舍：
@@ -176,7 +181,7 @@ tools/screenshot.mjs    双主题关键状态截图
 
 ```bash
 node --test tests/core.test.mjs tests/quota.test.mjs   # 52 项：核心 39 + 额度政策 13
-node tools/smoke.mjs               # 82 项：真实浏览器加载与交互（需先启动 serve.mjs）
+node tools/smoke.mjs               # 84 项：真实浏览器加载与交互（需先启动 serve.mjs）
 node tools/screenshot.mjs          # 输出到 docs/screenshots/（深浅两套主题）
 ```
 

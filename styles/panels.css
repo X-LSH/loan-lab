@@ -739,3 +739,86 @@ input[type="range"].slider::-moz-range-thumb {
   border-radius: var(--r-pill);
   box-shadow: 0 5px 16px rgba(255, 105, 0, 0.28);
 }
+
+/* ---------------- 小米布局变体：卡片化模块流 ----------------
+   这不只是换肤，是换结构：KPI 变横向滑动大卡片、输入面板拆成
+   独立卡片流。只在小米主题下生效，Apple 两套的双栏布局不受影响。
+   ------------------------------------------------------------- */
+:root[data-theme="xiaomi"] .kpis {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  gap: 14px;
+  padding: 2px 2px 16px;
+  scrollbar-width: none;
+}
+
+:root[data-theme="xiaomi"] .kpis::-webkit-scrollbar {
+  display: none;
+}
+
+:root[data-theme="xiaomi"] .kpis > .kpi {
+  /* 固定宽度让第 4 张自然溢出，才看得出可滑动 */
+  width: 264px;
+  min-width: 264px;
+  max-width: 264px;
+  flex: 0 0 264px;
+  scroll-snap-align: start;
+  border-radius: var(--r-lg);
+}
+
+/* 输入面板容器透明化，内部各区块各自成卡 */
+:root[data-theme="xiaomi"] .panel-input {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+:root[data-theme="xiaomi"] .panel-input > .field-group,
+:root[data-theme="xiaomi"] .panel-input > .loan-block,
+:root[data-theme="xiaomi"] .panel-input > .advanced {
+  background: var(--surface);
+  border: none;
+  border-radius: var(--r-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-xs), var(--inset-hi);
+  margin: 0;
+}
+
+:root[data-theme="xiaomi"] .panel-input > .loan-block {
+  border: none;
+}
+
+:root[data-theme="xiaomi"] .panel-input > .advanced {
+  border-top: none;
+  padding-top: 18px;
+}
+
+/* 卡片间距已经承担分隔职责，线就不需要了 */
+:root[data-theme="xiaomi"] .panel-input .divider {
+  display: none;
+}
+
+:root[data-theme="xiaomi"] .panel-title {
+  padding: 0 6px;
+}
+
+:root[data-theme="xiaomi"] .results {
+  gap: 20px;
+}
+
+:root[data-theme="xiaomi"] .tab-panel {
+  gap: 20px;
+}
+
+/* 移动端下 KPI 滑动卡片保留，但卡片宽度收窄 */
+@media (max-width: 640px) {
+  :root[data-theme="xiaomi"] .kpi {
+    min-width: 200px;
+  }
+}
