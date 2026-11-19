@@ -115,8 +115,20 @@ LPR 走势是假设，不是预测。快捷情景只作用于前 10 年（更贴
 
 ## 外观主题
 
-深色（黑底 / 暖白 / 低饱和铜色）为默认，浅色为辅，可随系统自动选择，也可在右上角手动切换。
-主题由 CSS 变量驱动，图表颜色同样走变量，切换时无需重绘。
+视觉语言取自 **Apple 人机界面指南**：纯黑背景、半透明标签体系、连续圆角、
+毛玻璃材质、8pt 间距、弹簧曲线。强调色保留铜色（产品的识别色），
+但明度与质感对齐 Apple 的系统强调色。
+
+深色为默认，浅色为辅，可随系统自动选择，也可在右上角手动切换。
+主题由 CSS 变量驱动，图表的渐变 `stop-color` 同样走变量，切换时无需重绘。
+
+几个刻意的取舍：
+
+- **材质优先于边框**：层次靠背景色差与毛玻璃建立，分隔线用 0.5px 半透明灰
+- **累计值图表纵轴从 0 起**：截断会夸大差距；月供这类窄范围才放缩纵轴，
+  且月供变化不足 2% 时也退回 0 起点，避免把噪声画成「变化」
+- **渐变填充**：柱状与面积图用垂直渐变，`stop-color` 由 CSS 变量控制，
+  `fill` 由 attribute 指向渐变——两者不能都走 CSS，否则会被覆盖
 
 ```js
 document.documentElement.dataset.theme  // 'dark' | 'light'
@@ -129,10 +141,11 @@ localStorage.getItem('loanlab-theme')   // 用户手动选择后记住
 
 ```
 index.html              页面结构 + 防主题闪烁的内联脚本
-styles/tokens.css       设计令牌（深浅双主题配色 / 排版 / 动效曲线）
+styles/tokens.css       设计令牌（Apple 质感配色 / 字阶 / 形状 / 弹簧曲线）
 styles/base.css         基础层：重置、排版、滚动条、焦点、工具类
 styles/layout.css       结构层：顶栏、页面网格、输入面板、页脚
-styles/components.css   组件层：表单控件、卡片、表格、图表、高亮卡
+styles/components.css   组件层 A：表单控件（输入、分段、chip、开关）
+styles/panels.css       组件层 B：卡片、KPI、表格、图表、高亮、对比
 src/core/money.js       金额单位与格式化（分 <-> 元）
 src/core/amortize.js    摊销表：两种还款方式 + 组合贷合并
 src/core/payoff.js      提前结清时间线
@@ -155,7 +168,7 @@ tools/screenshot.mjs    双主题关键状态截图
 
 ```bash
 node --test tests/core.test.mjs tests/quota.test.mjs   # 52 项：核心 39 + 额度政策 13
-node tools/smoke.mjs               # 76 项：真实浏览器加载与交互（需先启动 serve.mjs）
+node tools/smoke.mjs               # 78 项：真实浏览器加载与交互（需先启动 serve.mjs）
 node tools/screenshot.mjs          # 输出到 docs/screenshots/（深浅两套主题）
 ```
 

@@ -94,6 +94,8 @@ try {
   check('利率 3.50% 时首月月供 4,490.45（对标公开基准）', benchPayment === '4,490.45', benchPayment);
   check('利率 3.50% 时总利息 61.66 万', (await text('.kpi:nth-child(3) .kpi-value .num')) === '61.66');
   check('利率提示换算为 LPR 基准', (await text('[data-rate-hint="commercial"]')).includes('基准'));
+  const termNote = await text('#total-amount-note');
+  check('合计贷款金额换算正确', termNote.includes('100.00 万元'), termNote);
 
   check('五个图表已绘制（月供 / 构成 / 结清 / 月供对比 / 利息对比）',
     (await count('.chart-box svg')) === 5, String(await count('.chart-box svg')));
@@ -357,9 +359,13 @@ try {
   const bgDark = await cdp.eval('getComputedStyle(document.body).backgroundColor');
   check('深色主题改变了页面背景', bgDark !== bgLight, `${bgLight} -> ${bgDark}`);
   check('主题偏好写入 localStorage', (await cdp.eval(`localStorage.getItem('loanlab-theme')`)) === 'dark');
-  check('图表填充色跟随主题', await cdp.eval(`(() => {
+  check('图表使用渐变填充', await cdp.eval(`(() => {
     const bar = document.querySelector('.chart-box svg .bar-principal');
-    return !!bar && getComputedStyle(bar).fill.startsWith('rgb');
+    return !!bar && (bar.getAttribute('fill') || '').startsWith('url(');
+  })()`));
+  check('渐变颜色由主题变量驱动', await cdp.eval(`(() => {
+    const stop = document.querySelector('.chart-box svg .stop-p-top');
+    return !!stop && getComputedStyle(stop).stopColor.startsWith('rgb');
   })()`));
 
   await cdp.click('[data-theme-set="light"]');

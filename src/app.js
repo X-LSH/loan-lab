@@ -166,17 +166,23 @@ function redrawCharts() {
 function updatePaymentChartSub() {
   const el = $('#payment-chart-sub');
   if (!el || !plan) return;
+  const s = plan.merged.summary;
+  const scaled = s.maxPayment > 0 && (s.maxPayment - s.minPayment) / s.maxPayment >= 0.02;
+  const axisNote = scaled
+    ? '纵轴非零起点，只为看清台阶幅度。'
+    : '纵轴从 0 起，可对照月供占贷款额的比例。';
   const changes = plan.mergedRateChanges;
+
   if (changes.length > 1) {
     const parts = changes.map(
       (c) => `第 ${Math.ceil(c.period / 12)} 年起 ${(c.monthly / 100).toFixed(2)}`,
     );
-    el.textContent = `月供随重定价变化：${parts.join(' → ')}。纵轴非零起点，只为看清台阶幅度。`;
+    el.textContent = `月供随重定价变化：${parts.join(' → ')}。${axisNote}`;
   } else {
     el.textContent =
-      plan.schedules.some((s) => s.method === 'equal-principal')
-        ? '等额本金下月供逐月递减；当前未启用逐年重定价，故无台阶。纵轴非零起点。'
-        : '固定利率下月供恒定；启用「LPR 逐年重定价」后会出现台阶。纵轴非零起点。';
+      plan.schedules.some((x) => x.method === 'equal-principal')
+        ? `等额本金下月供逐月递减；当前未启用逐年重定价，故无台阶。${axisNote}`
+        : `固定利率下月供恒定；启用「LPR 逐年重定价」后会出现台阶。${axisNote}`;
   }
 }
 
@@ -205,8 +211,9 @@ function renderScheduleTable() {
 
 function updateTermNote(years) {
   const total = plan.merged.totals.principal;
+  // 分 -> 万元：1 万元 = 1e6 分。这里曾误用 1e8，导致 100 万显示成 1.00 万
   $('#total-amount-note').textContent =
-    `合计贷款 ${(total / 1e8).toFixed(2)} 万元 · ${years} 年 · ${plan.months} 期`;
+    `合计贷款 ${(total / 1e6).toFixed(2)} 万元 · ${years} 年 · ${plan.months} 期`;
 }
 
 /** 组合贷时在每个贷款块右上角显示占比 */

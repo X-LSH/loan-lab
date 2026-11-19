@@ -60,6 +60,22 @@ function mount(container, svg, label) {
 }
 
 /**
+ * 注册一条垂直渐变。stop 颜色交给 CSS 类控制，这样主题切换时
+ * 渐变会跟着变，不需要重新计算。
+ */
+function attachGradient(svg, id, { classTop, classBottom }) {
+  if (!svg.querySelector(`#${id}`)) {
+    const defs = svg.querySelector('defs') ?? node('defs');
+    const grad = node('linearGradient', { id, x1: '0', y1: '0', x2: '0', y2: '1' });
+    grad.append(node('stop', { offset: '0%', class: classTop }));
+    grad.append(node('stop', { offset: '100%', class: classBottom }));
+    defs.append(grad);
+    if (!defs.parentNode) svg.prepend(defs);
+  }
+  return `url(#${id})`;
+}
+
+/**
  * 年度本金 / 利息堆叠柱状图。
  * 等额本金呈现「本金柱等高、利息柱骤降」，等额本息则是「利息占大头并缓慢让位」。
  */
@@ -73,6 +89,16 @@ export function renderStackedBars(container, years) {
   const svg = node('svg', {
     viewBox: `0 0 ${W} ${H}`,
     preserveAspectRatio: 'xMidYMid meet',
+  });
+
+  // 柱子用渐变：Apple Charts 的质感来自色块的渐隐，不是纯色块
+  const fillP = attachGradient(svg, 'grad-comp-p', {
+    classTop: 'stop-p-top',
+    classBottom: 'stop-p-bottom',
+  });
+  const fillI = attachGradient(svg, 'grad-comp-i', {
+    classTop: 'stop-i-top',
+    classBottom: 'stop-i-bottom',
   });
 
   const maxRaw = Math.max(...years.map((y) => y.principal + y.interest));
@@ -120,7 +146,8 @@ export function renderStackedBars(container, years) {
         y: pTop,
         width: barW,
         height: Math.max(yOf(0) - pTop, 0),
-        rx: 1.5,
+        rx: 3,
+        fill: fillP,
         class: 'bar-principal',
       }),
     );
@@ -132,7 +159,8 @@ export function renderStackedBars(container, years) {
         y: iTop,
         width: barW,
         height: Math.max(pTop - iTop, 0),
-        rx: 1.5,
+        rx: 3,
+        fill: fillI,
         class: 'bar-interest',
       }),
     );
@@ -190,10 +218,12 @@ export function renderPaymentChart(container, rows, rateChanges) {
   const pays = rows.map((r) => r.payment);
   const rawMin = Math.min(...pays);
   const rawMax = Math.max(...pays);
-  // 月供几乎不变时也撑开一点范围，避免整条线贴死在顶部
-  const span = Math.max(rawMax - rawMin, rawMax * 0.02);
-  const yMin = Math.max(rawMin - span * 0.4, 0);
-  const yMax = rawMax + span * 0.4;
+  // 月供几乎不变时纵轴从 0 起更诚实：平线落在顶部，能对照月供占贷款额的比例。
+  // 只有重定价造成明显台阶时才放缩纵轴，否则窄区间会把噪声放大成"变化"。
+  const relativeSpan = rawMax > 0 ? (rawMax - rawMin) / rawMax : 0;
+  const scaled = relativeSpan >= 0.02;
+  const yMin = scaled ? Math.max(rawMin - (rawMax - rawMin) * 0.4, 0) : 0;
+  const yMax = scaled ? rawMax + (rawMax - rawMin) * 0.4 : niceScale(rawMax);
 
   const n = rows.length;
   const xOf = (period) => PAD.left + ((period - 1) / Math.max(n - 1, 1)) * innerW;
@@ -366,6 +396,10 @@ export function renderPaymentCompareChart(container, rowsA, rowsB) {
   const innerH = H - PAD.top - PAD.bottom;
 
   const svg = node('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'xMidYMid meet' });
+  const fillSaved = attachGradient(svg, 'grad-cmp-pay', {
+    classTop: 'stop-saved-top',
+    classBottom: 'stop-saved-bottom',
+  });
 
   const paysA = rowsA.map((r) => r.payment);
   const paysB = rowsB.map((r) => r.payment);
@@ -386,6 +420,7 @@ export function renderPaymentCompareChart(container, rowsA, rowsB) {
   svg.append(
     node('polygon', {
       points: areaBetween(paysA, paysB, xOf, yOf),
+      fill: fillSaved,
       class: 'area-saved',
     }),
   );
@@ -436,6 +471,10 @@ export function renderInterestCompareChart(container, rowsA, rowsB) {
   const innerH = H - PAD.top - PAD.bottom;
 
   const svg = node('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'xMidYMid meet' });
+  const fillSaved = attachGradient(svg, 'grad-cmp-int', {
+    classTop: 'stop-saved-top',
+    classBottom: 'stop-saved-bottom',
+  });
 
   const intA = cumulativeInterest(rowsA);
   const intB = cumulativeInterest(rowsB);
@@ -451,6 +490,7 @@ export function renderInterestCompareChart(container, rowsA, rowsB) {
   svg.append(
     node('polygon', {
       points: areaBetween(intA, intB, xOf, yOf),
+      fill: fillSaved,
       class: 'area-saved',
     }),
   );
@@ -525,6 +565,11 @@ export function renderPayoffChart(container, payoff) {
     preserveAspectRatio: 'xMidYMid meet',
   });
 
+  const fillSaved = attachGradient(svg, 'grad-payoff-saved', {
+    classTop: 'stop-saved-top',
+    classBottom: 'stop-saved-bottom',
+  });
+
   const totalYears = points.at(-1).month / 12;
   const yMax = niceScale(payoff.originalTotal);
   const xOf = (year) => PAD.left + (year / totalYears) * innerW;
@@ -562,6 +607,7 @@ export function renderPayoffChart(container, payoff) {
   svg.append(
     node('polygon', {
       points: [...areaTop, ...areaBottom].join(' '),
+      fill: fillSaved,
       class: 'area-saved',
     }),
   );
