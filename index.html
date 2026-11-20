@@ -32,6 +32,9 @@
 </head>
 <body>
 
+<!-- 键盘用户第一个 Tab 就能跳过整个输入表单，直达结果 -->
+<a href="#results" class="skip-link">跳到测算结果</a>
+
 <header class="topbar">
   <div class="topbar-inner">
     <div class="brand">
@@ -143,14 +146,14 @@
             </select>
           </div>
           <div class="chips" data-uplifts></div>
-          <p class="quota-info" data-quota-info></p>
+          <p class="quota-info" id="fund-quota-info" data-quota-info></p>
           <div class="quota-warning" data-quota-warning role="alert" hidden></div>
         </div>
 
         <div class="field">
           <label class="field-label" for="fund-amount">贷款金额</label>
           <div class="input-wrap">
-            <input id="fund-amount" class="input num" type="number" inputmode="decimal" step="0.5" min="0" value="60" data-amount="fund" />
+            <input id="fund-amount" class="input num" type="number" inputmode="decimal" step="0.5" min="0" value="60" aria-describedby="fund-quota-info" data-amount="fund" />
             <span class="input-suffix">万元</span>
           </div>
         </div>
@@ -268,20 +271,23 @@
   <!-- ============================ 结果区 ============================ -->
   <!-- 结果区刻意不加 aria-live：输入时每帧都会变化，整区播报等于噪声。
        错误与警告用 role="alert" 单独播报，结果数字交给用户主动导航。 -->
-  <section class="results" id="results">
+  <!-- tabindex="-1" 让跳转链接的目标可被程序化聚焦（不进 Tab 序列） -->
+  <section class="results" id="results" tabindex="-1">
 
     <div class="kpis" id="kpis"></div>
 
     <div class="split-note" id="split-note" hidden></div>
 
-    <nav class="tabs" role="tablist">
-      <button class="tab is-active" data-tab="schedule" role="tab" aria-selected="true">还款计划</button>
-      <button class="tab" data-tab="payoff" role="tab" aria-selected="false">提前结清</button>
-      <button class="tab" data-tab="compare" role="tab" aria-selected="false">方式对比</button>
-    </nav>
+    <!-- tab 是同一页面内的视图切换，不是导航，所以用 div 而非 <nav>
+         （用 nav 会多出一个叫「导航」的地标，误导屏幕阅读器用户） -->
+    <div class="tabs" role="tablist" aria-label="结果视图">
+      <button class="tab is-active" id="tab-schedule" data-tab="schedule" role="tab" aria-selected="true" aria-controls="panel-schedule">还款计划</button>
+      <button class="tab" id="tab-payoff" data-tab="payoff" role="tab" aria-selected="false" aria-controls="panel-payoff" tabindex="-1">提前结清</button>
+      <button class="tab" id="tab-compare" data-tab="compare" role="tab" aria-selected="false" aria-controls="panel-compare" tabindex="-1">方式对比</button>
+    </div>
 
     <!-- 还款计划 -->
-    <div class="tab-panel is-active" data-panel="schedule">
+    <div class="tab-panel is-active" id="panel-schedule" role="tabpanel" aria-labelledby="tab-schedule" tabindex="0" data-panel="schedule">
       <section class="card is-collapsible" data-card="payment">
         <div class="card-head">
           <div class="card-head-text">
@@ -355,7 +361,7 @@
     </div>
 
     <!-- 提前结清 -->
-    <div class="tab-panel" data-panel="payoff">
+    <div class="tab-panel" id="panel-payoff" role="tabpanel" aria-labelledby="tab-payoff" tabindex="0" data-panel="payoff">
       <section class="card is-collapsible" data-card="prepay">
         <div class="card-head">
           <div class="card-head-text">
@@ -373,10 +379,10 @@
             <div class="field">
               <label class="field-label" for="prepay-month">提前还款时间</label>
               <div class="input-wrap">
-                <input id="prepay-month" class="input num" type="number" inputmode="numeric" min="1" value="120" data-prepay-month />
+                <input id="prepay-month" class="input num" type="number" inputmode="numeric" min="1" value="120" aria-describedby="prepay-month-note" data-prepay-month />
                 <span class="input-suffix">第几期</span>
               </div>
-              <p class="field-note" data-prepay-month-note></p>
+              <p class="field-note" id="prepay-month-note" data-prepay-month-note></p>
             </div>
 
             <div class="field">
@@ -430,7 +436,7 @@
     </div>
 
     <!-- 方式对比 -->
-    <div class="tab-panel" data-panel="compare">
+    <div class="tab-panel" id="panel-compare" role="tabpanel" aria-labelledby="tab-compare" tabindex="0" data-panel="compare">
       <div class="cmp-chart-grid">
         <section class="card is-collapsible">
           <div class="card-head">

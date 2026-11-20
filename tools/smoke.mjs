@@ -503,6 +503,38 @@ try {
   check('已设置 accent-color',
     (await cdp.eval(`getComputedStyle(document.body).accentColor`)) !== 'auto');
 
+  /* ---------- 可访问性：landmark / tab / 折叠 / skip link ---------- */
+  check('存在唯一 main 地标',
+    (await cdp.eval(`document.querySelectorAll('main').length`)) === 1);
+  check('tablist 不是 nav 元素（避免多出导航地标）',
+    await cdp.eval(`document.querySelector('[role="tablist"]').tagName === 'DIV'`),
+    await cdp.eval(`document.querySelector('[role="tablist"]').tagName`));
+  check('tab 关联到对应 panel',
+    await cdp.eval(`document.querySelectorAll('[role="tab"][aria-controls]').length === 3`));
+  check('panel 声明了 tabpanel 角色',
+    await cdp.eval(`document.querySelectorAll('[role="tabpanel"][aria-labelledby]').length === 3`));
+  check('存在跳转链接',
+    await cdp.eval(`!!document.querySelector('.skip-link[href="#results"]')`));
+
+  // 方向键切换 tab：role="tab" 必须配套这套键盘行为
+  const afterArrow = await cdp.eval(`(() => {
+    const tab = document.querySelector('#tab-schedule');
+    tab.focus();
+    tab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    return document.querySelector('[role="tab"][aria-selected="true"]').id;
+  })()`);
+  check('方向键可切换 tab', afterArrow === 'tab-payoff', afterArrow);
+
+  const focusedTab = await cdp.eval(`document.activeElement.id`);
+  check('方向键切换后焦点跟随', focusedTab === 'tab-payoff', focusedTab);
+
+  // 回到还款计划，避免影响后续断言
+  await cdp.eval(`document.querySelector('#tab-schedule').click()`);
+  await settle(320);
+
+  check('折叠按钮暴露 aria-expanded',
+    await cdp.eval(`document.querySelector('[data-card="payment"] .card-collapse').getAttribute('aria-expanded') === 'true'`));
+
   /* ---------------------------------------------- 12. 最终健康检查 */
   check('全程无未捕获异常', cdp.exceptions.length === 0, cdp.exceptions.join(' | ') || '无');
   check('全程无控制台错误', cdp.consoleErrors.length === 0, cdp.consoleErrors.join(' | ') || '无');

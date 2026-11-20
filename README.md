@@ -240,11 +240,26 @@ npx -y modern-web-guidance@latest retrieve dark-mode
 - **文本换行**：标题 `text-wrap: balance`、正文 `text-wrap: pretty`，
   但不用在 `*` 上（有性能成本）
 
+### 可访问性（accessibility guide 全文对照）
+
+- **地标**：`header` / `main` / `footer` 齐备，`main` 唯一。
+  tab 列表**不用 `<nav>`** —— 那是同一页面内的视图切换，不是导航，
+  用 `nav` 会多出一个叫「导航」的地标误导用户
+- **tab 必须配套键盘**：声明 `role="tab"` 就要实现 ←/→/Home/End 切换，
+  且只有当前 tab 在 Tab 序列里（`tabindex=0`，其余 `-1`）。
+  「只加 ARIA 属性不实现交互」是明确违规
+- **`aria-expanded`**：折叠按钮必须暴露展开状态，不能只改视觉
+- **`aria-controls` / `aria-labelledby`**：tab 与 panel 双向关联
+- **跳转链接**：键盘用户第一个 Tab 就能跳过整个输入表单直达结果，
+  目标加 `tabindex="-1"` 使其可被程序化聚焦
+- **`aria-describedby`**：把输入框与其说明文字关联（上限提示、期数说明），
+  聚焦时会被朗读
+
 ## 测试
 
 ```bash
 node --test tests/core.test.mjs tests/quota.test.mjs tests/prepay.test.mjs  # 61 项
-node tools/smoke.mjs               # 111 项：真实浏览器加载与交互（需先启动 serve.mjs）
+node tools/smoke.mjs               # 119 项：真实浏览器加载与交互（需先启动 serve.mjs）
 node tools/screenshot.mjs          # 输出到 docs/screenshots/（深浅两套主题）
 ```
 

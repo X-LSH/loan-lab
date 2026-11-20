@@ -538,8 +538,18 @@ function mountCardTools() {
       /* 隐私模式忽略 */
     }
 
-    card.querySelector('.card-collapse').addEventListener('click', () => {
+    // aria-expanded 必须与视觉状态同步，否则屏幕阅读器不知道卡片是展开还是收起
+    const collapseBtn = card.querySelector('.card-collapse');
+    const syncCollapse = () => {
+      const collapsed = card.classList.contains('is-collapsed');
+      collapseBtn.setAttribute('aria-expanded', String(!collapsed));
+      collapseBtn.setAttribute('aria-label', collapsed ? '展开卡片' : '折叠卡片');
+    };
+    syncCollapse();
+
+    collapseBtn.addEventListener('click', () => {
       const collapsed = card.classList.toggle('is-collapsed');
+      syncCollapse();
       try {
         localStorage.setItem(key, collapsed ? 'collapsed' : 'expanded');
       } catch {
@@ -739,22 +749,45 @@ function bindEvents() {
   });
 
   // Tab 切换
-  $$('.tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      $$('.tab').forEach((t) => {
-        const active = t === tab;
-        t.classList.toggle('is-active', active);
-        t.setAttribute('aria-selected', String(active));
-      });
-      $$('.tab-panel').forEach((panel) => {
-        panel.classList.toggle('is-active', panel.dataset.panel === tab.dataset.tab);
-      });
-      if (tab.dataset.tab === 'schedule' || tab.dataset.tab === 'payoff') {
-        // 从 display:none 恢复显示后重绘，确保 viewBox 拿到正确宽度
-        requestAnimationFrame(redrawCharts);
-      }
+  // ARIA Tabs 模式：只有当前 tab 在 Tab 序列里（tabindex=0），
+  // 其余用方向键访问（tabindex=-1）。声明了 role="tab" 就必须配套这套键盘行为。
+  function activateTab(tab, { focus = false } = {}) {
+    $$('.tab').forEach((t) => {
+      const active = t === tab;
+      t.classList.toggle('is-active', active);
+      t.setAttribute('aria-selected', String(active));
+      t.tabIndex = active ? 0 : -1;
     });
+    $$('.tab-panel').forEach((panel) => {
+      panel.classList.toggle('is-active', panel.dataset.panel === tab.dataset.tab);
+    });
+    if (focus) tab.focus();
+    if (tab.dataset.tab === 'schedule' || tab.dataset.tab === 'payoff') {
+      // 从 display:none 恢复显示后重绘，确保 viewBox 拿到正确宽度
+      requestAnimationFrame(redrawCharts);
+    }
+  }
+
+  $$('.tab').forEach((tab) => {
+    tab.addEventListener('click', () => activateTab(tab));
   });
+
+  const tablist = document.querySelector('[role="tablist"]');
+  if (tablist) {
+    const tabs = Array.from(tablist.querySelectorAll('[role="tab"]'));
+    tablist.addEventListener('keydown', (event) => {
+      const index = tabs.indexOf(document.activeElement);
+      if (index < 0) return;
+      let next = null;
+      if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+      else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+      else if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = tabs.length - 1;
+      if (next === null) return;
+      event.preventDefault();
+      activateTab(tabs[next], { focus: true });
+    });
+  }
 
   // 表格视图切换
   $$('[data-schedule-view]').forEach((btn) => {
