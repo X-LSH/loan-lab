@@ -23,12 +23,15 @@
   --line: rgba(84, 84, 88, 0.5);
   --line-strong: rgba(174, 174, 178, 0.24);
   --line-hair: rgba(84, 84, 88, 0.32);
+  /* 输入控件的边框要可见：UI 组件边界需达 3:1，装饰线不必 */
+  --line-field: rgba(235, 235, 245, 0.34);
 
-  /* 标签：Apple 的 signature 是半透明白，不是纯灰 */
+  /* 标签：Apple 的 signature 是半透明白，不是纯灰。
+     ink-3 用于辅助正文，必须达到 4.5:1 —— 0.34 只有约 3.2:1，已提到 0.55 */
   --ink: #ffffff;
-  --ink-2: rgba(235, 235, 245, 0.62);
-  --ink-3: rgba(235, 235, 245, 0.34);
-  --ink-4: rgba(235, 235, 245, 0.18);
+  --ink-2: rgba(235, 235, 245, 0.68);
+  --ink-3: rgba(235, 235, 245, 0.55);
+  --ink-4: rgba(235, 235, 245, 0.2);
 
   /* 强调：铜色，但提亮到 Apple 强调色的明度 */
   --accent: #d4a574;
@@ -53,15 +56,19 @@
     "Segoe UI Variable Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   --mono: "SF Mono", ui-monospace, "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
 
-  --fs-title: 27px;
-  --fs-title-2: 21px;
-  --fs-headline: 15px;
-  --fs-body: 13.5px;
-  --fs-callout: 13px;
-  --fs-sub: 12px;
-  --fs-foot: 11.5px;
-  --fs-cap: 11px;
-  --fs-cap2: 10.5px;
+  /* 字号一律用 rem：用户把浏览器默认字号调大时，整套排版会等比放大。
+     若用 px，无论用户怎么设置都纹丝不动 —— 这是可访问性硬伤。 */
+  --fs-title: 1.6875rem; /* 27px */
+  --fs-title-2: 1.3125rem; /* 21px */
+  --fs-headline: 0.9375rem; /* 15px */
+  --fs-body: 0.84375rem; /* 13.5px */
+  --fs-callout: 0.8125rem; /* 13px */
+  --fs-sub: 0.75rem; /* 12px */
+  --fs-foot: 0.71875rem; /* 11.5px */
+  --fs-cap: 0.6875rem; /* 11px */
+  --fs-cap2: 0.65625rem; /* 10.5px */
+  /* 表单控件必须 ≥1rem，否则 iOS 聚焦时会自动放大页面 */
+  --fs-input: 1rem;
 
   --lh-tight: 1.14;
   --lh-normal: 1.5;
@@ -125,11 +132,12 @@
   --line: rgba(60, 60, 67, 0.18);
   --line-strong: rgba(60, 60, 67, 0.29);
   --line-hair: rgba(60, 60, 67, 0.12);
+  --line-field: rgba(60, 60, 67, 0.55);
 
   --ink: #000000;
-  --ink-2: rgba(60, 60, 67, 0.62);
-  --ink-3: rgba(60, 60, 67, 0.36);
-  --ink-4: rgba(60, 60, 67, 0.2);
+  --ink-2: rgba(60, 60, 67, 0.68);
+  --ink-3: rgba(60, 60, 67, 0.56);
+  --ink-4: rgba(60, 60, 67, 0.22);
 
   --accent: #a9743e;
   --accent-ink: #8c5c2c;
@@ -173,10 +181,11 @@
   --line: rgba(23, 26, 31, 0.08);
   --line-strong: rgba(23, 26, 31, 0.15);
   --line-hair: rgba(23, 26, 31, 0.06);
+  --line-field: rgba(23, 26, 31, 0.45);
 
   --ink: #171a1f;
-  --ink-2: #5c6470;
-  --ink-3: #8b939f;
+  --ink-2: #525a66;
+  --ink-3: #6b7280;
   --ink-4: #b9c0c9;
 
   /* 小米橙 */

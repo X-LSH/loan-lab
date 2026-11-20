@@ -78,8 +78,10 @@
 <main class="layout">
 
   <!-- ============================ 输入面板 ============================ -->
-  <aside class="panel-input">
-    <form id="loan-form" novalidate>
+  <!-- 用 form 包裹控件：屏幕阅读器能识别为表单区域，回车也有确定行为。
+       纯前端计算，novalidate 关闭原生提交校验，由脚本自行处理。
+       注意：form 不能嵌套，这里只保留一层。 -->
+  <form class="panel-input" id="loan-form" novalidate>
 
       <div class="field-group">
         <label class="field-label">贷款构成</label>
@@ -261,8 +263,7 @@
       </details>
 
       <p class="form-error" id="form-error" role="alert" hidden></p>
-    </form>
-  </aside>
+  </form>
 
   <!-- ============================ 结果区 ============================ -->
   <!-- 结果区刻意不加 aria-live：输入时每帧都会变化，整区播报等于噪声。

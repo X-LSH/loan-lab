@@ -869,6 +869,47 @@ input[type="range"].slider::-moz-range-thumb {
   box-shadow: 0 5px 16px rgba(255, 105, 0, 0.28);
 }
 
+/* ---------------- 高对比度（强制颜色）模式 ----------------
+   该模式下浏览器会移除 box-shadow、渐变背景与 background-image，
+   卡片的边界会整个消失。用实色边框兜底，并让文字用系统色。
+   ---------------------------------------------------------- */
+@media (forced-colors: active) {
+  .card,
+  .kpi,
+  .loan-block,
+  .cmp-card,
+  .split-note,
+  .prepay-result,
+  .quota-warning,
+  .form-error,
+  .advanced,
+  .panel-input {
+    border: 1px solid CanvasText;
+  }
+
+  .kpi::before,
+  .tab.is-active::after {
+    background: Highlight;
+    forced-color-adjust: none;
+  }
+
+  .data-table th,
+  .data-table td {
+    border-bottom: 1px solid CanvasText;
+  }
+
+  .chip.is-active,
+  .seg-btn.is-active,
+  .mini-btn.is-active {
+    border: 1px solid Highlight;
+  }
+
+  /* select 的下拉箭头是 background-image，会被移除，用边框补足可识别性 */
+  .select {
+    border: 1px solid CanvasText;
+  }
+}
+
 /* ---------------- 小米布局变体：卡片化模块流 ----------------
    这不只是换肤，是换结构：KPI 变横向滑动大卡片、输入面板拆成
    独立卡片流。只在小米主题下生效，Apple 两套的双栏布局不受影响。

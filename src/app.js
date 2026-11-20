@@ -394,7 +394,12 @@ const yuan = (cents) => (cents / 100).toLocaleString('zh-CN', {
   maximumFractionDigits: 2,
 });
 
-function renderPrepay() {
+/**
+ * @param {object} [opts]
+ * @param {boolean} [opts.validate] false = 用户仍在输入，无效值只给中性提示；
+ *   true = 已失焦或主动提交，才升级为红色错误。避免打字过程中被红字打断。
+ */
+function renderPrepay({ validate = false } = {}) {
   const el = $('[data-prepay-result]');
   if (!el || !plan) return;
 
@@ -457,8 +462,9 @@ function renderPrepay() {
       `违约金按剩余本金 ${((plan.penaltyRate || 0) * 100).toFixed(2)}% 计收` +
       `${plan.penaltyFreeMonths ? `，前 ${plan.penaltyFreeMonths} 期免罚` : ''}。</p>`;
   } catch (e) {
-    el.className = 'prepay-result is-warn';
-    el.innerHTML = `<div class="prepay-headline is-warn">${e.message}</div>`;
+    // 输入过程中只给中性提示，blur 后才升级为错误样式
+    el.className = `prepay-result${validate ? ' is-warn' : ''}`;
+    el.innerHTML = `<div class="prepay-headline${validate ? ' is-warn' : ''}">${e.message}</div>`;
   }
 }
 
@@ -709,15 +715,18 @@ function bindEvents() {
   });
 
   // 部分提前还款
+  // 部分提前还款：输入时只更新、不报红；失焦后才校验
   $('[data-prepay-month]').addEventListener('input', () => {
     state.prepayMonth = Math.round(readNumber('[data-prepay-month]')) || 120;
-    renderPrepay();
+    renderPrepay({ validate: false });
   });
+  $('[data-prepay-month]').addEventListener('blur', () => renderPrepay({ validate: true }));
 
   $('[data-prepay-amount]').addEventListener('input', () => {
     state.prepayAmountWan = readNumber('[data-prepay-amount]') || 0;
-    renderPrepay();
+    renderPrepay({ validate: false });
   });
+  $('[data-prepay-amount]').addEventListener('blur', () => renderPrepay({ validate: true }));
 
   $('[data-prepay-strategy]').addEventListener('click', (event) => {
     const btn = event.target.closest('[data-strategy]');
@@ -726,7 +735,7 @@ function bindEvents() {
     $$('[data-prepay-strategy] .seg-btn').forEach((b) =>
       b.classList.toggle('is-active', b === btn),
     );
-    renderPrepay();
+    renderPrepay({ validate: true });
   });
 
   // Tab 切换

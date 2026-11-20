@@ -114,15 +114,16 @@
   align-items: center;
 }
 
-/* 输入框：圆角 + 聚焦发光，不用粗边框 */
+/* 输入框：圆角 + 聚焦发光，不用粗边框。
+   边框用 --line-field（3:1）而非装饰用的 --line；字号 ≥1rem 防 iOS 聚焦缩放 */
 .input {
   width: 100%;
   padding: 11px 52px 11px 13px;
-  border: 0.5px solid var(--line);
+  border: 1px solid var(--line-field);
   border-radius: var(--r-sm);
   background: var(--bg-sunken);
   color: var(--ink);
-  font-size: var(--fs-headline);
+  font-size: var(--fs-input);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   transition: border-color var(--dur-fast) var(--ease-out),
@@ -232,13 +233,13 @@
 .select {
   width: 100%;
   padding: 11px 32px 11px 13px;
-  border: 0.5px solid var(--line);
+  border: 1px solid var(--line-field);
   border-radius: var(--r-sm);
   background: var(--bg-sunken)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
     no-repeat right 11px center;
   appearance: none;
-  font-size: var(--fs-sub);
+  font-size: var(--fs-input);
   font-weight: 500;
   cursor: pointer;
   transition: border-color var(--dur-fast), box-shadow var(--dur-fast), background-color var(--dur-fast);
@@ -405,4 +406,15 @@
 
 .btn-clip:active {
   transform: none;
+}
+
+/* 触屏设备上所有输入控件字号拉到 1rem：低于 16px 时 iOS 聚焦会自动放大整页，
+   而且粗指针下更大的字号本身也更好点选 */
+@media (pointer: coarse) {
+  .input,
+  .select,
+  .select-sm,
+  .lpr-cell .input {
+    font-size: 1rem;
+  }
 }

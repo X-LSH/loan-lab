@@ -29,6 +29,9 @@ body {
   letter-spacing: var(--tracking-body);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1, "cv05" 1, "ss01" 1;
+  /* 原生勾选框 / 单选钮 / 滑块用品牌色，不必自绘 */
+  accent-color: var(--accent);
+  overflow-wrap: break-word;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color var(--dur-slow) var(--ease-inout),
@@ -56,10 +59,12 @@ h4 {
   font-weight: 600;
   letter-spacing: var(--tracking-title);
   line-height: var(--lh-tight);
+  text-wrap: balance;
 }
 
 p {
   margin: 0;
+  text-wrap: pretty;
 }
 
 a {

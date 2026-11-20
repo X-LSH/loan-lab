@@ -229,12 +229,22 @@ npx -y modern-web-guidance@latest retrieve dark-mode
   整区播报等于噪声。错误与超限警告用 `role="alert"` 单独播报
 - **JS 现代化**：用 `toReversed()` 替代「浅拷贝后 reverse」，
   用 `replaceChildren()` 替代 `innerHTML = ''`
+- **字号一律 rem**：用 px 的话，用户把浏览器默认字号调大时排版纹丝不动。
+  输入控件另设 `--fs-input: 1rem`，低于 16px 会触发 iOS 聚焦缩放
+- **对比度**：辅助文字 `--ink-3` 提到 4.5:1 以上；输入框边框改用专用
+  `--line-field`（约 3:1），装饰性的 `--line` 保持微妙
+- **表单语义**：控件包在单层 `<form novalidate>` 内（不能嵌套）；
+  校验时机遵循「输入只清除、失焦才报错」，避免打字过程中跳红字
+- **强制颜色模式**：`@media (forced-colors: active)` 下用实色边框兜底，
+  因为该模式会移除 `box-shadow` 与渐变，卡片边界会整个消失
+- **文本换行**：标题 `text-wrap: balance`、正文 `text-wrap: pretty`，
+  但不用在 `*` 上（有性能成本）
 
 ## 测试
 
 ```bash
 node --test tests/core.test.mjs tests/quota.test.mjs tests/prepay.test.mjs  # 61 项
-node tools/smoke.mjs               # 106 项：真实浏览器加载与交互（需先启动 serve.mjs）
+node tools/smoke.mjs               # 111 项：真实浏览器加载与交互（需先启动 serve.mjs）
 node tools/screenshot.mjs          # 输出到 docs/screenshots/（深浅两套主题）
 ```
 

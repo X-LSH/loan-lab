@@ -486,6 +486,23 @@ try {
   check('超限警告用 role=alert',
     await cdp.eval(`document.querySelector('[data-quota-warning]').getAttribute('role') === 'alert'`));
 
+  check('输入面板是 form 元素',
+    await cdp.eval(`document.querySelector('#loan-form')?.tagName === 'FORM'`));
+  check('没有嵌套 form',
+    await cdp.eval(`document.querySelectorAll('#loan-form form').length === 0`),
+    String(await cdp.eval(`document.querySelectorAll('#loan-form form').length`)));
+  check('输入控件字号不小于 16px（防 iOS 缩放）',
+    await cdp.eval(`parseFloat(getComputedStyle(document.querySelector('#commercial-amount')).fontSize) >= 16`),
+    await cdp.eval(`getComputedStyle(document.querySelector('#commercial-amount')).fontSize`));
+  check('字号用 rem 单位（跟随用户设置）',
+    await cdp.eval(`(() => {
+      const v = getComputedStyle(document.documentElement).getPropertyValue('--fs-body').trim();
+      return v.endsWith('rem');
+    })()`),
+    await cdp.eval(`getComputedStyle(document.documentElement).getPropertyValue('--fs-body').trim()`));
+  check('已设置 accent-color',
+    (await cdp.eval(`getComputedStyle(document.body).accentColor`)) !== 'auto');
+
   /* ---------------------------------------------- 12. 最终健康检查 */
   check('全程无未捕获异常', cdp.exceptions.length === 0, cdp.exceptions.join(' | ') || '无');
   check('全程无控制台错误', cdp.consoleErrors.length === 0, cdp.consoleErrors.join(' | ') || '无');
