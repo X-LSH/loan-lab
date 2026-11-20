@@ -27,10 +27,11 @@
   --line-field: rgba(235, 235, 245, 0.34);
 
   /* 标签：Apple 的 signature 是半透明白，不是纯灰。
-     ink-3 用于辅助正文，必须达到 4.5:1 —— 0.34 只有约 3.2:1，已提到 0.55 */
+     ink-3 用于辅助正文，必须达到 4.5:1 —— 0.34 只有约 3.2:1。
+     层次靠字号与字重区分，不靠把文字压到看不清。 */
   --ink: #ffffff;
-  --ink-2: rgba(235, 235, 245, 0.68);
-  --ink-3: rgba(235, 235, 245, 0.55);
+  --ink-2: rgba(235, 235, 245, 0.74);
+  --ink-3: rgba(235, 235, 245, 0.63);
   --ink-4: rgba(235, 235, 245, 0.2);
 
   /* 强调：铜色，但提亮到 Apple 强调色的明度 */
@@ -43,6 +44,8 @@
   /* 语义色：对齐 Apple 系统色 */
   --principal: #64a8ff;
   --principal-soft: rgba(100, 168, 255, 0.16);
+  /* 图表线条用亮蓝好看，但同样的蓝做文字只有 4.3:1 —— 文字用更亮的变体 */
+  --principal-text: #9ccbff;
   --interest: #ffb340;
   --interest-soft: rgba(255, 179, 64, 0.15);
   --saved: #4dd98a;
@@ -135,8 +138,8 @@
   --line-field: rgba(60, 60, 67, 0.55);
 
   --ink: #000000;
-  --ink-2: rgba(60, 60, 67, 0.68);
-  --ink-3: rgba(60, 60, 67, 0.56);
+  --ink-2: rgba(60, 60, 67, 0.85);
+  --ink-3: rgba(60, 60, 67, 0.74);
   --ink-4: rgba(60, 60, 67, 0.22);
 
   --accent: #a9743e;
@@ -147,6 +150,7 @@
 
   --principal: #2f7ff0;
   --principal-soft: rgba(47, 127, 240, 0.1);
+  --principal-text: #1257b8;
   --interest: #d97706;
   --interest-soft: rgba(217, 119, 6, 0.1);
   --saved: #1fa85c;
@@ -184,25 +188,27 @@
   --line-field: rgba(23, 26, 31, 0.45);
 
   --ink: #171a1f;
-  --ink-2: #525a66;
-  --ink-3: #6b7280;
+  --ink-2: #3f4652;
+  --ink-3: #5a6270;
   --ink-4: #b9c0c9;
 
   /* 小米橙 */
   --accent: #ff6900;
-  --accent-ink: #e85d00;
-  --accent-deep: #c94f00;
+  /* 品牌橙做背景很好，做文字只有 2.8:1 —— 文字用调深两档的版本 */
+  --accent-ink: #a8380a;
+  --accent-deep: #8f2f08;
   --accent-soft: rgba(255, 105, 0, 0.12);
   --accent-ring: rgba(255, 105, 0, 0.3);
 
   /* 语义色：比 Apple 更明快 */
   --principal: #3d7eff;
   --principal-soft: rgba(61, 126, 255, 0.12);
+  --principal-text: #1a5fd0;
   --interest: #ff9500;
   --interest-soft: rgba(255, 149, 0, 0.13);
   --saved: #00c48c;
   --saved-soft: rgba(0, 196, 140, 0.12);
-  --saved-ink: #009e70;
+  --saved-ink: #007a57;
   --warn: #ff4d4f;
   --warn-soft: rgba(255, 77, 79, 0.11);
 

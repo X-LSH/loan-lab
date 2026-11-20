@@ -7,6 +7,14 @@
   "scripts": {
     "start": "node tools/serve.mjs",
     "test": "node --test tests/core.test.mjs tests/quota.test.mjs tests/prepay.test.mjs",
-    "smoke": "node tools/smoke.mjs"
+    "smoke": "node tools/smoke.mjs",
+    "a11y": "node tools/a11y.mjs",
+    "visual": "node tools/visual.mjs"
+  },
+  "devDependencies": {
+    "axe-core": "^4.10.2"
+  },
+  "devDependencies": {
+    "axe-core": "^4.14.1"
   }
 }

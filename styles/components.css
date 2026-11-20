@@ -83,7 +83,7 @@
 }
 
 .tag-commercial {
-  color: var(--principal);
+  color: var(--principal-text);
   background: var(--principal-soft);
   border-color: color-mix(in srgb, var(--principal) 22%, transparent);
 }
@@ -156,7 +156,8 @@
   position: absolute;
   right: 13px;
   font-size: var(--fs-sub);
-  color: var(--ink-3);
+  /* 单位提示也是要读的字，用 ink-2 保证 4.5:1 */
+  color: var(--ink-2);
   pointer-events: none;
   white-space: nowrap;
   font-weight: 500;

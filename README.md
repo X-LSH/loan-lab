@@ -264,9 +264,31 @@ npx -y modern-web-guidance@latest retrieve dark-mode
 
 ```bash
 node --test tests/core.test.mjs tests/quota.test.mjs tests/prepay.test.mjs  # 61 项
-node tools/smoke.mjs               # 122 项：真实浏览器加载与交互（需先启动 serve.mjs）
-node tools/screenshot.mjs          # 输出到 docs/screenshots/（深浅两套主题）
+node tools/smoke.mjs       # 122 项：真实浏览器加载与交互
+node tools/a11y.mjs        # axe-core：3 主题 × 3 视图的 WCAG A/AA 扫描
+node tools/visual.mjs      # 视觉基线比对（尺寸、字号、颜色是否漂移）
+node tools/screenshot.mjs  # 输出到 docs/screenshots/
 ```
+
+`smoke` / `a11y` / `visual` 都需要先跑 `node tools/serve.mjs`。
+
+### 为什么是四层而不是一层
+
+| 层 | 能发现 | 发现不了 |
+| --- | --- | --- |
+| 单测 | 公式算错、恒等式不闭合 | 界面没显示、事件没绑上 |
+| 冒烟 | 交互断链、数字渲染错 | 对比度不足、语义缺失 |
+| axe | WCAG A/AA 违规 | 规范没编码进规则的语义问题 |
+| 视觉基线 | 布局与样式被改坏 | 功能是否正常 |
+
+`axe` 与「人工对照 guide」是互补的：人能找到规范没覆盖的模式，
+axe 能保证每次改动都不回退。
+
+**视觉基线为什么不用像素比对**：字体渲染、抗锯齿、子像素定位在不同机器
+与不同次运行间都有微小差异，像素 diff 会持续误报，最后没人看。
+这里只比对「真正会被改坏的东西」——宽高、字号、颜色。
+
+改动是预期内的时候，用 `node tools/visual.mjs --update` 重建基线。
 
 单测里固定了几个可外部核对的基准值，用于防止公式被整体改错：
 
