@@ -535,6 +535,36 @@ try {
   check('折叠按钮暴露 aria-expanded',
     await cdp.eval(`document.querySelector('[data-card="payment"] .card-collapse').getAttribute('aria-expanded') === 'true'`));
 
+  /* ---------- 图表的长描述与数据表替代 ---------- */
+  const charts = ['chart-payment', 'chart-composition', 'chart-payoff', 'chart-cmp-payment', 'chart-cmp-interest'];
+  const descOk = await cdp.eval(`(() => {
+    const ids = ${JSON.stringify(charts)};
+    return ids.every((id) => {
+      const svg = document.querySelector('#' + id + ' svg');
+      const descId = svg && svg.getAttribute('aria-describedby');
+      const desc = descId && document.getElementById(descId);
+      return !!desc && desc.textContent.trim().length > 20;
+    });
+  })()`);
+  check('五个图表都有数据摘要（aria-describedby）', descOk);
+
+  const tableRefOk = await cdp.eval(`(() => {
+    const ids = ['chart-payment', 'chart-composition', 'chart-payoff'];
+    return ids.every((id) => {
+      const svg = document.querySelector('#' + id + ' svg');
+      const descId = svg && svg.getAttribute('aria-describedby');
+      const desc = descId && document.getElementById(descId);
+      return !!desc && desc.textContent.includes('表格');
+    });
+  })()`);
+  check('摘要指引到语义数据表', tableRefOk);
+
+  check('摘要含具体金额（不是空话）', await cdp.eval(`(() => {
+    const svg = document.querySelector('#chart-payment svg');
+    const desc = document.getElementById(svg.getAttribute('aria-describedby'));
+    return /\\d/.test(desc.textContent) && desc.textContent.includes('元');
+  })()`));
+
   /* ---------------------------------------------- 12. 最终健康检查 */
   check('全程无未捕获异常', cdp.exceptions.length === 0, cdp.exceptions.join(' | ') || '无');
   check('全程无控制台错误', cdp.consoleErrors.length === 0, cdp.consoleErrors.join(' | ') || '无');

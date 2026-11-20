@@ -53,11 +53,37 @@ function niceScale(maxValue, ticks = 4) {
 const money = (cents) =>
   (cents / 100).toLocaleString('zh-CN', { maximumFractionDigits: 0 });
 
-function mount(container, svg, label) {
+/**
+ * 挂载图表。
+ *
+ * 图表是纯视觉产物，屏幕阅读器拿不到任何信息。所以除了 aria-label（名称）
+ * 还要给一段 aria-describedby 的**动态数据摘要**（关键数字），并在摘要里
+ * 指明「完整数据在哪张表」—— 语义数据表本身就是图表的无障碍替代方案。
+ */
+function mount(container, svg, label, description) {
   container.replaceChildren(svg);
   svg.setAttribute('role', 'img');
   svg.setAttribute('aria-label', label);
+
+  if (description && container.id) {
+    const descId = `${container.id}-desc`;
+    let descEl = document.getElementById(descId);
+    if (!descEl) {
+      descEl = document.createElement('p');
+      descEl.id = descId;
+      descEl.className = 'visually-hidden';
+      container.after(descEl);
+    }
+    descEl.textContent = description;
+    svg.setAttribute('aria-describedby', descId);
+  }
 }
+
+/** 金额格式化：分 -> 带千分位的元 */
+const fmtYuan = (cents) => (cents / 100).toLocaleString('zh-CN', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 /**
  * 注册一条垂直渐变。stop 颜色交给 CSS 类控制，这样主题切换时
@@ -199,7 +225,20 @@ export function renderStackedBars(container, years, mode = 'stack') {
     }
   });
 
-  mount(container, svg, '每年度偿还本金与利息的堆叠柱状图');
+  const firstYear = years[0];
+  const lastYear = years.at(-1);
+  const shareOf = (y) => ((y.interest / (y.principal + y.interest)) * 100).toFixed(1);
+  mount(
+    container,
+    svg,
+    '每年度偿还本金与利息的堆叠柱状图',
+    isPercent
+      ? `按年展示本金与利息各自占比。第 ${firstYear.year} 年利息占 ${shareOf(firstYear)}%，` +
+        `第 ${lastYear.year} 年占 ${shareOf(lastYear)}%。完整数字见「月度还款明细」表格。`
+      : `第 ${firstYear.year} 年偿还本金 ${fmtYuan(firstYear.principal)} 元、利息 ${fmtYuan(firstYear.interest)} 元；` +
+        `第 ${lastYear.year} 年偿还本金 ${fmtYuan(lastYear.principal)} 元、利息 ${fmtYuan(lastYear.interest)} 元。` +
+        `完整数字见「月度还款明细」表格。`,
+  );
 }
 
 /**
@@ -342,7 +381,17 @@ export function renderPaymentChart(container, rows, rateChanges, mode = 'line') 
     );
   }
 
-  mount(container, svg, '月供随时间变化的曲线，标出每次重定价的位置');
+  const firstPay = rows[0].payment;
+  const lastPay = rows.at(-1).payment;
+  const steps = rateChanges?.length ?? 1;
+  mount(
+    container,
+    svg,
+    '月供随时间变化的曲线，标出每次重定价的位置',
+    `共 ${rows.length} 期。首期月供 ${fmtYuan(firstPay)} 元，末期 ${fmtYuan(lastPay)} 元。` +
+      `${steps > 1 ? `期间有 ${steps - 1} 次重定价造成的台阶。` : '固定利率下月供保持不变。'}` +
+      `逐期数字见「月度还款明细」表格。`,
+  );
 }
 
 /** 期数序列 -> 金额序列的前缀和（累计已付利息） */
@@ -475,7 +524,14 @@ export function renderPaymentCompareChart(container, rowsA, rowsB) {
     class: 'line-plan', 'stroke-width': 2, 'stroke-dasharray': '5 3',
   }));
 
-  mount(container, svg, '两种还款方式的月供随时间变化对比');
+  mount(
+    container,
+    svg,
+    '两种还款方式的月供随时间变化对比',
+    `等额本息月供恒定 ${fmtYuan(paysA[0])} 元；` +
+      `等额本金首月 ${fmtYuan(paysB[0])} 元，末月 ${fmtYuan(paysB.at(-1))} 元。` +
+      `两者首月相差 ${fmtYuan(paysB[0] - paysA[0])} 元。完整对比见下方「数字明细」。`,
+  );
 }
 
 /**
@@ -559,7 +615,14 @@ export function renderInterestCompareChart(container, rowsA, rowsB) {
     class: 'line-plan', 'stroke-width': 2, 'stroke-dasharray': '5 3',
   }));
 
-  mount(container, svg, '两种还款方式的累计已付利息对比');
+  mount(
+    container,
+    svg,
+    '两种还款方式的累计已付利息对比',
+    `等额本息全周期总利息 ${fmtYuan(intA.at(-1))} 元；` +
+      `等额本金总利息 ${fmtYuan(intB.at(-1))} 元，` +
+      `少付 ${fmtYuan(intA.at(-1) - intB.at(-1))} 元。完整对比见下方「数字明细」。`,
+  );
 }
 
 /**
@@ -730,5 +793,15 @@ export function renderPayoffChart(container, payoff) {
     );
   }
 
-  mount(container, svg, '提前结清全周期总支出与不提前还款的对比曲线');
+  const earliest = points[0];
+  const latest = points.at(-1);
+  mount(
+    container,
+    svg,
+    '提前结清全周期总支出与不提前还款的对比曲线',
+    `按原计划还到期，全周期总支出 ${fmtYuan(payoff.originalTotal)} 元。` +
+      `第 ${Math.round(earliest.month / 12)} 年末结清需 ${fmtYuan(earliest.totalOutlay)} 元，` +
+      `第 ${Math.round(latest.month / 12)} 年末结清需 ${fmtYuan(latest.totalOutlay)} 元。` +
+      `逐年数字见「逐年结清测算」表格。`,
+  );
 }

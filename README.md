@@ -254,12 +254,17 @@ npx -y modern-web-guidance@latest retrieve dark-mode
   目标加 `tabindex="-1"` 使其可被程序化聚焦
 - **`aria-describedby`**：把输入框与其说明文字关联（上限提示、期数说明），
   聚焦时会被朗读
+- **图表的长描述**：每个图表都由 JS 生成一段动态数据摘要（含具体金额、
+  变化区间），挂在 `aria-describedby` 上，并在摘要里指明
+  「完整数字见哪张表」—— 语义数据表本身就是图表的无障碍替代方案
+- **键值对用 `<dl>`**：对比图的数字明细是描述列表而非 `div` 堆叠，
+  屏幕阅读器能识别「术语—定义」关系
 
 ## 测试
 
 ```bash
 node --test tests/core.test.mjs tests/quota.test.mjs tests/prepay.test.mjs  # 61 项
-node tools/smoke.mjs               # 119 项：真实浏览器加载与交互（需先启动 serve.mjs）
+node tools/smoke.mjs               # 122 项：真实浏览器加载与交互（需先启动 serve.mjs）
 node tools/screenshot.mjs          # 输出到 docs/screenshots/（深浅两套主题）
 ```
 

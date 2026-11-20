@@ -210,10 +210,12 @@ export function renderCompare(el, cmp, plan) {
   const card = (data, badge, badgeClass) => `
     <div class="cmp-card">
       <h3>${data.label}<span class="badge ${badgeClass}">${badge}</span></h3>
-      <div class="cmp-row"><span>首月月供</span><span class="num">${yuan(data.firstPayment)} 元</span></div>
-      <div class="cmp-row"><span>末月月供</span><span class="num">${yuan(data.lastPayment)} 元</span></div>
-      <div class="cmp-row"><span>总利息</span><span class="num">${yuan(data.totalInterest)} 元</span></div>
-      <div class="cmp-row"><span>总还款</span><span class="num">${yuan(data.totalPayment)} 元</span></div>
+      <dl class="cmp-list">
+        <div class="cmp-row"><dt>首月月供</dt><dd class="num">${yuan(data.firstPayment)} 元</dd></div>
+        <div class="cmp-row"><dt>末月月供</dt><dd class="num">${yuan(data.lastPayment)} 元</dd></div>
+        <div class="cmp-row"><dt>总利息</dt><dd class="num">${yuan(data.totalInterest)} 元</dd></div>
+        <div class="cmp-row"><dt>总还款</dt><dd class="num">${yuan(data.totalPayment)} 元</dd></div>
+      </dl>
     </div>
   `;
 
