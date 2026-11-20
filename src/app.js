@@ -383,7 +383,7 @@ function updateQuota() {
       `<button type="button" class="btn-clip" data-quota-clip>裁剪到 ${result.final.toFixed(2)} 万</button>`;
   } else {
     warn.hidden = true;
-    warn.innerHTML = '';
+    warn.replaceChildren();
   }
 }
 
@@ -563,6 +563,10 @@ function mountCardTools() {
 function applyTheme(theme) {
   const next = THEMES.includes(theme) ? theme : 'dark';
   document.documentElement.dataset.theme = next;
+  // 同步 meta，让原生 UI（滚动条、表单控件、画布底色）跟着主题走。
+  // 小米主题本质是浅色方案，映射为 light。
+  const meta = document.querySelector('meta[name="color-scheme"]');
+  if (meta) meta.content = next === 'dark' ? 'dark' : 'light';
   try {
     localStorage.setItem('loanlab-theme', next);
   } catch {

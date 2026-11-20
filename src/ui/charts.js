@@ -395,9 +395,10 @@ function linePath(values, xOf, yOf) {
 
 function areaBetween(valuesTop, valuesBottom, xOf, yOf) {
   const top = valuesTop.map((v, i) => `${xOf(i + 1).toFixed(1)},${yOf(v).toFixed(1)}`);
-  const bottom = [...valuesBottom]
+  // map 已产生新数组，无需再浅拷贝；toReversed 也不会修改原数组
+  const bottom = valuesBottom
     .map((v, i) => [i, v])
-    .reverse()
+    .toReversed()
     .map(([i, v]) => `${xOf(i + 1).toFixed(1)},${yOf(v).toFixed(1)}`);
   return [...top, ...bottom].join(' ');
 }
@@ -619,8 +620,8 @@ export function renderPayoffChart(container, payoff) {
 
   // 省息面积：水平线（原计划）与结清曲线之间
   const areaTop = points.map((p) => `${xOf(p.month / 12)},${yOf(payoff.originalTotal)}`);
-  const areaBottom = [...points]
-    .reverse()
+  const areaBottom = points
+    .toReversed()
     .map((p) => `${xOf(p.month / 12)},${yOf(p.totalOutlay)}`);
   svg.append(
     node('polygon', {

@@ -205,11 +205,36 @@ tools/screenshot.mjs    双主题关键状态截图
 
 分层原则：`core/` 全部是纯函数，不碰 DOM，可直接在 Node 里测试；`ui/` 只负责把数据变成视图。
 
+## Web 规范合规
+
+用 Google Chrome 团队的 [Modern Web Guidance](https://github.com/GoogleChrome/modern-web-guidance-src)
+做静态扫描与规范对照：
+
+```bash
+npx -y modern-web-guidance@latest legacy-scan .
+npx -y modern-web-guidance@latest retrieve dark-mode
+```
+
+当前 `legacy-scan` 结果：**0 findings**。
+
+关键合规点：
+
+- **配色方案**：`<meta name="color-scheme">` 与 `:root { color-scheme: light dark }`
+  配合，并用 `:has()` 把 meta 映射回 CSS 属性（meta 只是提示，CSS 声明会覆盖它）。
+  小米主题本质是浅色方案，映射为 `light`
+- **滚动条**：只用标准 `scrollbar-width` / `scrollbar-color`。
+  算出的 `scrollbar-width` 非 `auto` 会让 `::-webkit-scrollbar` 失效，两套不能叠加
+- **表格语义**：`<th scope="col">` + `<caption>`（视觉隐藏，供屏幕阅读器）
+- **live region 克制**：结果区刻意**不**设 `aria-live`——输入时每帧都在变，
+  整区播报等于噪声。错误与超限警告用 `role="alert"` 单独播报
+- **JS 现代化**：用 `toReversed()` 替代「浅拷贝后 reverse」，
+  用 `replaceChildren()` 替代 `innerHTML = ''`
+
 ## 测试
 
 ```bash
 node --test tests/core.test.mjs tests/quota.test.mjs tests/prepay.test.mjs  # 61 项
-node tools/smoke.mjs               # 99 项：真实浏览器加载与交互（需先启动 serve.mjs）
+node tools/smoke.mjs               # 106 项：真实浏览器加载与交互（需先启动 serve.mjs）
 node tools/screenshot.mjs          # 输出到 docs/screenshots/（深浅两套主题）
 ```
 

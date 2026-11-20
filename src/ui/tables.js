@@ -7,7 +7,7 @@ import { formatCents } from '../core/money.js';
 const yuan = (cents) => formatCents(cents);
 
 function head(cells) {
-  return `<thead><tr>${cells.map((c) => `<th>${c}</th>`).join('')}</tr></thead>`;
+  return `<thead><tr>${cells.map((c) => `<th scope="col">${c}</th>`).join('')}</tr></thead>`;
 }
 
 function row(cells, { className = '', data = '' } = {}) {

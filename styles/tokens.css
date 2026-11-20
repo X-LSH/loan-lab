@@ -5,7 +5,9 @@
    ============================================================ */
 
 :root {
-  color-scheme: dark;
+  /* 基础声明必须是 light dark。具体生效值由 <meta name="color-scheme">
+     决定 —— 见下方的 :has() 映射。不要在此硬编码 dark。 */
+  color-scheme: light dark;
 
   /* 中性面：Apple 深色模式的层次靠背景色差，不靠边框 */
   --bg: #000000;
@@ -94,6 +96,17 @@
   --page-max: 1480px;
   --gap: 20px;
   --pad-card: 20px;
+}
+
+/* meta 只是「presentational hint」，作者 CSS 里的 color-scheme 会覆盖它。
+   所以必须把 meta 显式映射回属性，否则切换主题时原生 UI（滚动条、
+   表单控件、画布底色）不会跟着变。 */
+:root:has(> head > meta[name="color-scheme"][content="dark"]) {
+  color-scheme: dark;
+}
+
+:root:has(> head > meta[name="color-scheme"][content="light"]) {
+  color-scheme: light;
 }
 
 /* ---------------- 浅色主题 ---------------- */

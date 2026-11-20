@@ -102,31 +102,13 @@ svg {
   color: var(--ink);
 }
 
-/* Apple 的滚动条是 overlay 式，极细 */
+/* Apple 的滚动条是 overlay 式，极细。
+   注意：算出的 scrollbar-width 非 auto（如 thin）会让 ::-webkit-scrollbar
+   伪元素失效，所以这里只用标准属性，不要再叠加 webkit 版本。
+   thumb 需与轨道和容器背景都有足够对比（至少 3:1）。 */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--line-strong) transparent;
-}
-
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-*::-webkit-scrollbar-thumb {
-  background: var(--line-strong);
-  border: 2px solid transparent;
-  background-clip: content-box;
-  border-radius: var(--r-pill);
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: var(--ink-3);
-  background-clip: content-box;
+  scrollbar-color: var(--ink-3) transparent;
 }
 
 /* ---------- 工具类 ---------- */
@@ -144,6 +126,19 @@ svg {
 
 .dim {
   color: var(--ink-3);
+}
+
+/* 仅供屏幕阅读器：视觉上不可见，但保留在可访问性树中 */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .tabular {

@@ -454,6 +454,9 @@ try {
     return !!card && parseFloat(getComputedStyle(card).borderRadius) >= 22;
   })()`));
   check('小米主题偏好已记录', (await cdp.eval(`localStorage.getItem('loanlab-theme')`)) === 'xiaomi');
+  check('存在 color-scheme meta', await cdp.eval(`!!document.querySelector('meta[name="color-scheme"]')`));
+  check('小米主题映射为浅色方案',
+    (await cdp.eval(`document.querySelector('meta[name="color-scheme"]').content`)) === 'light');
   check('小米主题 KPI 可横向滑动', await cdp.eval(`(() => {
     const k = document.querySelector('.kpis');
     return k.scrollWidth > k.clientWidth;
@@ -470,6 +473,18 @@ try {
   await settle(620);
   check('主题切换后数值仍正确',
     (await text('.kpi:nth-child(2) .kpi-value .num')).length > 0);
+
+  /* ---------------------------------------------- 13. 语义与合规 */
+  const scopeCount = await cdp.eval(`document.querySelectorAll('#schedule-table th[scope="col"]').length`);
+  check('表头带 scope', scopeCount > 0, String(scopeCount));
+  check('明细表有 caption',
+    await cdp.eval(`document.querySelectorAll('#schedule-table caption').length === 1`));
+  check('结清表有 caption',
+    await cdp.eval(`document.querySelectorAll('#payoff-table caption').length === 1`));
+  check('结果区不设 aria-live（避免整区播报噪声）',
+    await cdp.eval(`!document.querySelector('#results').getAttribute('aria-live')`));
+  check('超限警告用 role=alert',
+    await cdp.eval(`document.querySelector('[data-quota-warning]').getAttribute('role') === 'alert'`));
 
   /* ---------------------------------------------- 12. 最终健康检查 */
   check('全程无未捕获异常', cdp.exceptions.length === 0, cdp.exceptions.join(' | ') || '无');

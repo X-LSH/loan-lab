@@ -3,6 +3,25 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- 告诉浏览器支持的配色方案，避免首屏原生 UI（滚动条、表单控件、画布底色）闪白 -->
+<meta name="color-scheme" content="light dark" />
+<script>
+  /* 主题必须在 CSS 应用前定好，否则深色用户会先看到白屏再反转。
+     同时把选择同步到 <meta name="color-scheme">，让原生 UI 跟着走：
+     小米主题本质是浅色方案，映射为 light。 */
+  (function () {
+    try {
+      var saved = localStorage.getItem('loanlab-theme');
+      var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      var theme = saved || (prefersLight ? 'light' : 'dark');
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="color-scheme"]');
+      if (meta) meta.content = theme === 'dark' ? 'dark' : 'light';
+    } catch (e) {
+      document.documentElement.dataset.theme = 'dark';
+    }
+  })();
+</script>
 <title>房贷测算台 · 等额本息 / 等额本金 / 组合贷 / 提前结清</title>
 <meta name="description" content="根据当前 LPR 与公积金利率，测算等额本息与等额本金的月度本金利息、组合贷合并月供，以及任意年份提前结清的总支出与省息。" />
 <link rel="stylesheet" href="styles/tokens.css" />
@@ -10,18 +29,6 @@
 <link rel="stylesheet" href="styles/layout.css" />
 <link rel="stylesheet" href="styles/components.css" />
 <link rel="stylesheet" href="styles/panels.css" />
-<script>
-  /* 主题必须在 CSS 应用前定好，否则深色用户会先看到白屏再反转 */
-  (function () {
-    try {
-      var saved = localStorage.getItem('loanlab-theme');
-      var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-      document.documentElement.dataset.theme = saved || (prefersLight ? 'light' : 'dark');
-    } catch (e) {
-      document.documentElement.dataset.theme = 'dark';
-    }
-  })();
-</script>
 </head>
 <body>
 
@@ -135,7 +142,7 @@
           </div>
           <div class="chips" data-uplifts></div>
           <p class="quota-info" data-quota-info></p>
-          <div class="quota-warning" data-quota-warning hidden></div>
+          <div class="quota-warning" data-quota-warning role="alert" hidden></div>
         </div>
 
         <div class="field">
@@ -258,7 +265,9 @@
   </aside>
 
   <!-- ============================ 结果区 ============================ -->
-  <section class="results" id="results" aria-live="polite">
+  <!-- 结果区刻意不加 aria-live：输入时每帧都会变化，整区播报等于噪声。
+       错误与警告用 role="alert" 单独播报，结果数字交给用户主动导航。 -->
+  <section class="results" id="results">
 
     <div class="kpis" id="kpis"></div>
 
@@ -335,6 +344,7 @@
         </div>
         <div class="table-scroll">
           <table class="data-table" id="schedule-table">
+            <caption class="visually-hidden">还款计划明细，可按年或按月查看每期月供、本金、利息与剩余本金</caption>
             <thead></thead>
             <tbody></tbody>
           </table>
@@ -410,6 +420,7 @@
         </div>
         <div class="table-scroll">
           <table class="data-table" id="payoff-table">
+            <caption class="visually-hidden">逐年提前结清测算，含结清现金、全周期总支出与省下利息</caption>
             <thead></thead>
             <tbody></tbody>
           </table>
