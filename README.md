@@ -25,6 +25,7 @@ node tools/serve.mjs          # 打开 http://127.0.0.1:8080
 | 按年汇总 | 每年还款总额与利息占比，等额本金下逐年下降一目了然 |
 | 提前结清 | 第 0~N 年每个节点：结清现金、全周期总支出、省下利息、省息比例 |
 | 方式对比 | 月供压力曲线 + 累计利息曲线，直观看出省息从哪来、前期差多少 |
+| 卡片模块化 | 结果卡片可折叠（状态记忆），图表可切换形态（折线/面积、堆叠/百分比） |
 
 ## 计算规则
 
@@ -181,7 +182,7 @@ tools/screenshot.mjs    双主题关键状态截图
 
 ```bash
 node --test tests/core.test.mjs tests/quota.test.mjs   # 52 项：核心 39 + 额度政策 13
-node tools/smoke.mjs               # 84 项：真实浏览器加载与交互（需先启动 serve.mjs）
+node tools/smoke.mjs               # 91 项：真实浏览器加载与交互（需先启动 serve.mjs）
 node tools/screenshot.mjs          # 输出到 docs/screenshots/（深浅两套主题）
 ```
 

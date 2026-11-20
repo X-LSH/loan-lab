@@ -78,13 +78,16 @@ function attachGradient(svg, id, { classTop, classBottom }) {
 /**
  * 年度本金 / 利息堆叠柱状图。
  * 等额本金呈现「本金柱等高、利息柱骤降」，等额本息则是「利息占大头并缓慢让位」。
+ *
+ * @param {'stack'|'percent'} [mode] stack = 绝对值；percent = 100% 堆叠，看占比变化
  */
-export function renderStackedBars(container, years) {
+export function renderStackedBars(container, years, mode = 'stack') {
   const W = 840;
   const H = 262;
   const PAD = { top: 14, right: 14, bottom: 32, left: 58 };
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
+  const isPercent = mode === 'percent';
 
   const svg = node('svg', {
     viewBox: `0 0 ${W} ${H}`,
@@ -102,7 +105,7 @@ export function renderStackedBars(container, years) {
   });
 
   const maxRaw = Math.max(...years.map((y) => y.principal + y.interest));
-  const yMax = niceScale(maxRaw);
+  const yMax = isPercent ? 100 : niceScale(maxRaw);
 
   const yOf = (v) => PAD.top + innerH - (v / yMax) * innerH;
   const step = innerW / Math.max(years.length, 1);
@@ -122,7 +125,7 @@ export function renderStackedBars(container, years) {
       }),
     );
     svg.append(
-      text(axisLabel(value), {
+      text(isPercent ? `${Math.round(value)}%` : axisLabel(value), {
         x: PAD.left - 9,
         y: y + 3.5,
         'text-anchor': 'end',
@@ -136,10 +139,13 @@ export function renderStackedBars(container, years) {
     const cx = PAD.left + step * index + step / 2;
     const x = cx - barW / 2;
     const total = year.principal + year.interest;
+    // 百分比模式下每根柱子等高，只看本金/利息的占比变化
+    const pVal = isPercent ? (year.principal / total) * 100 : year.principal;
+    const totalVal = isPercent ? 100 : total;
 
     const group = node('g', { class: 'bar-group' });
 
-    const pTop = yOf(year.principal);
+    const pTop = yOf(pVal);
     group.append(
       node('rect', {
         x,
@@ -152,7 +158,7 @@ export function renderStackedBars(container, years) {
       }),
     );
 
-    const iTop = yOf(total);
+    const iTop = yOf(totalVal);
     group.append(
       node('rect', {
         x,
@@ -203,7 +209,7 @@ export function renderStackedBars(container, years) {
  * 纵轴按实际月供范围放缩，不是从 0 起——否则几十块的跳变在百万级月供上看不出来，
  * 副标题里会写明这一点，避免误导。
  */
-export function renderPaymentChart(container, rows, rateChanges) {
+export function renderPaymentChart(container, rows, rateChanges, mode = 'line') {
   const W = 840;
   const H = 216;
   const PAD = { top: 16, right: 16, bottom: 30, left: 60 };
@@ -257,6 +263,18 @@ export function renderPaymentChart(container, rows, rateChanges) {
   const path = rows
     .map((r, i) => `${i === 0 ? 'M' : 'L'}${xOf(r.period).toFixed(1)},${yOf(r.payment).toFixed(1)}`)
     .join(' ');
+
+  if (mode === 'area') {
+    const fillArea = attachGradient(svg, 'grad-pay-area', {
+      classTop: 'stop-accent-top',
+      classBottom: 'stop-accent-bottom',
+    });
+    const areaD =
+      `${path} L ${xOf(rows.at(-1).period).toFixed(1)},${yOf(yMin).toFixed(1)}` +
+      ` L ${xOf(rows[0].period).toFixed(1)},${yOf(yMin).toFixed(1)} Z`;
+    svg.append(node('path', { d: areaD, fill: fillArea, class: 'area-pay' }));
+  }
+
   svg.append(
     node('path', {
       d: path,

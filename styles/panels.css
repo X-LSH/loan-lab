@@ -188,6 +188,68 @@
   background: linear-gradient(135deg, var(--saved-soft), var(--surface) 42%);
 }
 
+/* ---------------- 卡片模块化：折叠与工具栏 ---------------- */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+}
+
+.card-tool {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-xs);
+  color: var(--ink-3);
+  transition: color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out), transform var(--dur) var(--ease-spring);
+}
+
+.card-tool:hover {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+.card-tool:active {
+  transform: scale(0.9);
+}
+
+.card-tool svg {
+  width: 15px;
+  height: 15px;
+}
+
+.card-tool.is-active {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+
+.card-collapse svg {
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.card.is-collapsed .card-collapse svg {
+  transform: rotate(-90deg);
+}
+
+.card-body {
+  overflow: hidden;
+}
+
+.card.is-collapsed .card-body {
+  display: none;
+}
+
+.card.is-collapsed .card-head {
+  margin-bottom: 0;
+}
+
+.card.is-collapsed .card-sub {
+  margin-bottom: 2px;
+}
+
 .legend {
   display: flex;
   gap: 14px;
@@ -252,6 +314,9 @@
 .chart-box svg .stop-i-bottom { stop-color: var(--interest); stop-opacity: 0.42; }
 .chart-box svg .stop-saved-top    { stop-color: var(--saved); stop-opacity: 0.34; }
 .chart-box svg .stop-saved-bottom { stop-color: var(--saved); stop-opacity: 0.03; }
+.chart-box svg .stop-accent-top    { stop-color: var(--accent); stop-opacity: 0.36; }
+.chart-box svg .stop-accent-bottom { stop-color: var(--accent); stop-opacity: 0.04; }
+.chart-box svg .area-pay { /* fill 由 attribute 指向渐变 */ }
 
 .chart-box svg .bar-group rect,
 .chart-box svg .point-group circle {

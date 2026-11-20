@@ -283,7 +283,43 @@ try {
   check('关闭 LPR 重定价后利率恢复可写',
     await cdp.eval(`!document.querySelector('[data-rate="commercial"]').readOnly`));
 
-  /* ---------------------------------------------- 9. 公积金额度约束 */
+  /* ---------------------------------------------- 9. 卡片模块化 */
+  await cdp.click('.tab[data-tab="schedule"]');
+  await settle(320);
+  const collapseCount = await count('.card-collapse');
+  check('卡片带折叠按钮', collapseCount >= 6, String(collapseCount));
+
+  await cdp.click('[data-card="payment"] .card-collapse');
+  await settle(320);
+  check('卡片可折叠', await cdp.eval(`document.querySelector('[data-card="payment"]').classList.contains('is-collapsed')`));
+  check('折叠后内容隐藏',
+    await cdp.eval(`getComputedStyle(document.querySelector('[data-card="payment"] .card-body')).display === 'none'`));
+
+  await cdp.click('[data-card="payment"] .card-collapse');
+  await settle(320);
+  check('卡片可重新展开',
+    await cdp.eval(`!document.querySelector('[data-card="payment"]').classList.contains('is-collapsed')`));
+
+  const compBefore = await cdp.eval(`document.querySelector('#chart-composition svg').innerHTML.length`);
+  await cdp.click('[data-chart-toggle="composition"]');
+  await settle(360);
+  check('图表形态可切换',
+    await cdp.eval(`document.querySelector('[data-chart-toggle="composition"]').classList.contains('is-active')`));
+  const compAfter = await cdp.eval(`document.querySelector('#chart-composition svg').innerHTML.length`);
+  check('切换后图表重绘', compAfter !== compBefore, `${compBefore} -> ${compAfter}`);
+
+  await cdp.click('[data-chart-toggle="composition"]');
+  await settle(320);
+
+  const payBefore = await cdp.eval(`document.querySelector('#chart-payment svg').innerHTML.length`);
+  await cdp.click('[data-chart-toggle="payment"]');
+  await settle(360);
+  const payAfter = await cdp.eval(`document.querySelector('#chart-payment svg').innerHTML.length`);
+  check('月供图可切换为面积形态', payAfter !== payBefore, `${payBefore} -> ${payAfter}`);
+  await cdp.click('[data-chart-toggle="payment"]');
+  await settle(320);
+
+  /* ---------------------------------------------- 10. 公积金额度约束 */
   await cdp.click('.seg-btn[data-mode="combo"]');
   await settle(720);
   await cdp.click('.tab[data-tab="schedule"]');

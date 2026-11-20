@@ -272,21 +272,33 @@
 
     <!-- 还款计划 -->
     <div class="tab-panel is-active" data-panel="schedule">
-      <section class="card" id="card-payment">
+      <section class="card is-collapsible" data-card="payment">
         <div class="card-head">
-          <div>
+          <div class="card-head-text">
             <h2>月供变化</h2>
             <p class="card-sub" id="payment-chart-sub">
               纵轴按月供实际范围放缩（非零起点），用于看清重定价造成的台阶；虚线标出每次重定价的位置。
             </p>
           </div>
+          <div class="card-actions">
+            <button type="button" class="card-tool" data-chart-toggle="payment" aria-label="切换为面积图" title="切换形态">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 3v18h18" /><path d="M7 14l4-4 3 3 5-6" />
+              </svg>
+            </button>
+            <button type="button" class="card-tool card-collapse" aria-label="折叠卡片" title="折叠">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+          </div>
         </div>
-        <div class="chart-box" id="chart-payment"></div>
+        <div class="card-body">
+          <div class="chart-box" id="chart-payment"></div>
+        </div>
       </section>
 
-      <section class="card">
+      <section class="card is-collapsible" data-card="composition">
         <div class="card-head">
-          <div>
+          <div class="card-head-text">
             <h2>本金与利息构成</h2>
             <p class="card-sub">按年度汇总，蓝色为本金、琥珀色为利息</p>
           </div>
@@ -294,11 +306,23 @@
             <span class="legend-item"><i class="dot dot-principal"></i>本金</span>
             <span class="legend-item"><i class="dot dot-interest"></i>利息</span>
           </div>
+          <div class="card-actions">
+            <button type="button" class="card-tool" data-chart-toggle="composition" aria-label="切换为百分比视图" title="切换形态">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="4" y="12" width="4" height="8" rx="1" /><rect x="10" y="8" width="4" height="12" rx="1" /><rect x="16" y="4" width="4" height="16" rx="1" />
+              </svg>
+            </button>
+            <button type="button" class="card-tool card-collapse" aria-label="折叠卡片" title="折叠">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+          </div>
         </div>
-        <div class="chart-box" id="chart-composition"></div>
+        <div class="card-body">
+          <div class="chart-box" id="chart-composition"></div>
+        </div>
       </section>
 
-      <section class="card">
+      <section class="card is-collapsible">
         <div class="card-head">
           <div>
             <h2>月度还款明细</h2>
@@ -321,7 +345,7 @@
 
     <!-- 提前结清 -->
     <div class="tab-panel" data-panel="payoff">
-      <section class="card">
+      <section class="card is-collapsible">
         <div class="card-head">
           <div>
             <h2>在第 N 年一次性结清，总共要花多少钱</h2>
@@ -333,7 +357,7 @@
 
       <section class="card card-emphasis" id="payoff-highlight"></section>
 
-      <section class="card">
+      <section class="card is-collapsible">
         <div class="card-head">
           <div>
             <h2>逐年结清测算</h2>
@@ -352,7 +376,7 @@
     <!-- 方式对比 -->
     <div class="tab-panel" data-panel="compare">
       <div class="cmp-chart-grid">
-        <section class="card">
+        <section class="card is-collapsible">
           <div class="card-head">
             <div>
               <h2>月供压力对比</h2>
@@ -362,7 +386,7 @@
           <div class="chart-box" id="chart-cmp-payment"></div>
         </section>
 
-        <section class="card">
+        <section class="card is-collapsible">
           <div class="card-head">
             <div>
               <h2>累计已付利息对比</h2>
@@ -373,7 +397,7 @@
         </section>
       </div>
 
-      <section class="card">
+      <section class="card is-collapsible">
         <div class="card-head">
           <div>
             <h2>数字明细</h2>

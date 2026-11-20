@@ -153,8 +153,8 @@ function renderAll(years, { animate = false } = {}) {
 }
 
 function redrawCharts() {
-  renderPaymentChart($('#chart-payment'), plan.merged.rows, plan.mergedRateChanges);
-  renderStackedBars($('#chart-composition'), aggregateByYear(plan.merged));
+  renderPaymentChart($('#chart-payment'), plan.merged.rows, plan.mergedRateChanges, chartModes.payment);
+  renderStackedBars($('#chart-composition'), aggregateByYear(plan.merged), chartModes.composition);
   renderPayoffChart($('#chart-payoff'), plan.payoff);
   if (cmp) {
     renderPaymentCompareChart($('#chart-cmp-payment'), cmp.equalPayment.rows, cmp.equalPrincipal.rows);
@@ -414,6 +414,71 @@ function setMode(mode) {
 
 const THEMES = ['dark', 'light', 'xiaomi'];
 
+/* ------------------------------------------------------------------ 卡片模块化 */
+
+/** 图表形态切换状态：payment 折线/面积，composition 堆叠/百分比 */
+const chartModes = { payment: 'line', composition: 'stack' };
+
+const COLLAPSE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
+
+/**
+ * 给标记为 .is-collapsible 的卡片注入折叠按钮并绑定事件。
+ * 按钮由 JS 注入而不是写死在 HTML，避免每个卡片都重复一段图标 markup。
+ * 折叠状态写 localStorage，刷新后保持。
+ */
+function mountCardTools() {
+  $$('.card.is-collapsible').forEach((card) => {
+    const key = `loanlab-card-${card.dataset.card ?? ''}`;
+    if (!card.querySelector('.card-collapse')) {
+      let actions = card.querySelector('.card-actions');
+      if (!actions) {
+        actions = document.createElement('div');
+        actions.className = 'card-actions';
+        card.querySelector('.card-head')?.append(actions);
+      }
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'card-tool card-collapse';
+      btn.setAttribute('aria-label', '折叠卡片');
+      btn.title = '折叠';
+      btn.innerHTML = COLLAPSE_ICON;
+      actions.prepend(btn);
+    }
+
+    try {
+      if (localStorage.getItem(key) === 'collapsed') card.classList.add('is-collapsed');
+    } catch {
+      /* 隐私模式忽略 */
+    }
+
+    card.querySelector('.card-collapse').addEventListener('click', () => {
+      const collapsed = card.classList.toggle('is-collapsed');
+      try {
+        localStorage.setItem(key, collapsed ? 'collapsed' : 'expanded');
+      } catch {
+        /* 忽略 */
+      }
+    });
+  });
+
+  // 图表形态切换
+  $$('[data-chart-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.chartToggle;
+      if (target === 'payment') {
+        chartModes.payment = chartModes.payment === 'line' ? 'area' : 'line';
+        btn.classList.toggle('is-active', chartModes.payment === 'area');
+        btn.setAttribute('aria-label', chartModes.payment === 'area' ? '切换为折线图' : '切换为面积图');
+      } else if (target === 'composition') {
+        chartModes.composition = chartModes.composition === 'stack' ? 'percent' : 'stack';
+        btn.classList.toggle('is-active', chartModes.composition === 'percent');
+        btn.setAttribute('aria-label', chartModes.composition === 'percent' ? '切换为绝对值视图' : '切换为百分比视图');
+      }
+      redrawCharts();
+    });
+  });
+}
+
 function applyTheme(theme) {
   const next = THEMES.includes(theme) ? theme : 'dark';
   document.documentElement.dataset.theme = next;
@@ -617,6 +682,7 @@ function init() {
   renderPresets();
   renderLprGrid();
   renderFundQuota();
+  mountCardTools();
   bindEvents();
   // head 里的内联脚本已按系统偏好或 localStorage 设好主题，这里只同步按钮状态
   applyTheme(document.documentElement.dataset.theme || 'dark');
