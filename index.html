@@ -345,6 +345,50 @@
 
     <!-- 提前结清 -->
     <div class="tab-panel" data-panel="payoff">
+      <section class="card is-collapsible" data-card="prepay">
+        <div class="card-head">
+          <div class="card-head-text">
+            <h2>部分提前还款</h2>
+            <p class="card-sub">还一部分后继续供。可选「缩短年限」省更多利息，或「减少月供」降低月供压力。</p>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="card-tool card-collapse" aria-label="折叠卡片" title="折叠">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="prepay-grid">
+            <div class="field">
+              <label class="field-label" for="prepay-month">提前还款时间</label>
+              <div class="input-wrap">
+                <input id="prepay-month" class="input num" type="number" inputmode="numeric" min="1" value="120" data-prepay-month />
+                <span class="input-suffix">第几期</span>
+              </div>
+              <p class="field-note" data-prepay-month-note></p>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="prepay-amount">提前还款金额</label>
+              <div class="input-wrap">
+                <input id="prepay-amount" class="input num" type="number" inputmode="decimal" step="1" min="0" value="30" data-prepay-amount />
+                <span class="input-suffix">万元</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label">还款后策略</label>
+              <div class="segmented segmented-2" data-prepay-strategy>
+                <button type="button" class="seg-btn is-active" data-strategy="shorten">缩短年限</button>
+                <button type="button" class="seg-btn" data-strategy="reduce">减少月供</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="prepay-result" data-prepay-result></div>
+        </div>
+      </section>
+
       <section class="card is-collapsible">
         <div class="card-head">
           <div>

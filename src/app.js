@@ -11,6 +11,7 @@ import {
 import {
   FUND_CITIES, DEFAULT_CITY_ID, getCity, resolveQuota, describeQuota,
 } from './core/quota.js';
+import { buildPrepayPlan, comparePrepay, PREPAY_STRATEGY } from './core/prepay.js';
 import { renderKpis, mountPayoffHighlight, updatePayoffHighlight, renderCompare } from './ui/summary.js';
 import { renderMonthlyTable, renderYearlyTable, renderPayoffTable, renderSplitNote } from './ui/tables.js';
 import { renderStackedBars, renderPayoffChart, renderPaymentChart, renderPaymentCompareChart, renderInterestCompareChart } from './ui/charts.js';
@@ -35,6 +36,10 @@ const state = {
   fundScope: 'couple',
   fundUplifts: [],
   fundQuota: null,
+  // 部分提前还款
+  prepayMonth: 120,
+  prepayAmountWan: 30,
+  prepayStrategy: PREPAY_STRATEGY.SHORTEN,
 };
 
 let plan = null;
@@ -135,6 +140,7 @@ function renderAll(years, { animate = false } = {}) {
   updateTermNote(years);
   updateShares();
   updateQuota();
+  renderPrepay();
 
   if (!highlightRefs) {
     highlightRefs = mountPayoffHighlight($('#payoff-highlight'), plan);
@@ -381,6 +387,81 @@ function updateQuota() {
   }
 }
 
+/* ------------------------------------------------------------------ 部分提前还款 */
+
+const yuan = (cents) => (cents / 100).toLocaleString('zh-CN', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+function renderPrepay() {
+  const el = $('[data-prepay-result]');
+  if (!el || !plan) return;
+
+  const note = $('[data-prepay-month-note]');
+  const month = Math.round(readNumber('[data-prepay-month]'));
+  if (note && Number.isFinite(month)) {
+    note.textContent = `第 ${Math.ceil(month / 12)} 年末`;
+  }
+
+  // 组合贷两笔的还款方式可能不同，部分还款先只支持单笔，避免给出误导数字
+  if (plan.schedules.length > 1) {
+    el.className = 'prepay-result is-warn';
+    el.innerHTML =
+      `<div class="prepay-headline is-warn">组合贷暂不支持部分提前还款测算</div>` +
+      `<p class="field-note">两笔贷款的利率与还款方式不同，提前还款作用于哪笔会显著影响结果。` +
+      `如需测算，请先切到「纯商贷」或「纯公积金」分别计算。</p>`;
+    return;
+  }
+
+  try {
+    const amountWan = readNumber('[data-prepay-amount]');
+    const amountCents = Math.round(amountWan * 1e6); // 万元 -> 分
+
+    if (!Number.isInteger(month) || month < 1 || month >= plan.months) {
+      throw new RangeError(`提前还款时间需在 1 到 ${plan.months - 1} 期之间`);
+    }
+    if (!Number.isFinite(amountCents) || amountCents <= 0) {
+      throw new RangeError('提前还款金额需大于 0');
+    }
+
+    const result = buildPrepayPlan({
+      schedule: plan.schedules[0],
+      prepayMonth: month,
+      prepayAmount: amountCents,
+      strategy: state.prepayStrategy,
+      penaltyRate: plan.penaltyRate,
+      penaltyFreeMonths: plan.penaltyFreeMonths,
+    });
+    const cmp = comparePrepay(plan.schedules[0], result);
+
+    const isShorten = result.strategy === PREPAY_STRATEGY.SHORTEN;
+    const isEpr = plan.schedules[0].method === 'equal-principal';
+    // 等额本金没有「单一月供」概念，用下期月供表述，并注明逐月递减
+    const nextPayment = yuan(result.summary.firstPayment);
+    const headline = isShorten
+      ? `还完后月供不变，总期数从 ${plan.months} 期缩短到 <strong>${result.newTotalMonths} 期</strong>（省 ${result.monthsSaved} 期）`
+      : `还完后期数不变，下期月供降至 <strong>${nextPayment} 元</strong>${isEpr ? '（逐月递减）' : ''}`;
+
+    const savedClass = cmp.savedInterest > 0 ? 'pos' : 'neg';
+    el.className = 'prepay-result';
+    el.innerHTML =
+      `<div class="prepay-headline">${headline}</div>` +
+      `<div class="prepay-rows">` +
+      `<div class="prepay-item"><div class="k">提前还款</div><div class="v">${yuan(result.prepayAmount)}</div></div>` +
+      `<div class="prepay-item"><div class="k">违约金</div><div class="v">${yuan(result.penalty)}</div></div>` +
+      `<div class="prepay-item"><div class="k">节省利息</div><div class="v ${savedClass}">${yuan(cmp.savedInterest)}</div></div>` +
+      `<div class="prepay-item"><div class="k">还款后剩余本金</div><div class="v">${yuan(result.afterRemain)}</div></div>` +
+      `</div>` +
+      `<p class="field-note">对比口径：节省 = 原计划利息 − 新利息 − 违约金。` +
+      `违约金按剩余本金 ${((plan.penaltyRate || 0) * 100).toFixed(2)}% 计收` +
+      `${plan.penaltyFreeMonths ? `，前 ${plan.penaltyFreeMonths} 期免罚` : ''}。</p>`;
+  } catch (e) {
+    el.className = 'prepay-result is-warn';
+    el.innerHTML = `<div class="prepay-headline is-warn">${e.message}</div>`;
+  }
+}
+
 /* ------------------------------------------------------------------ 预设 */
 
 function renderPresets() {
@@ -500,7 +581,9 @@ function scheduleRecompute() {
 }
 
 function bindEvents() {
-  $$('.seg-btn').forEach((btn) => {
+  // 只绑真正带 data-mode 的分段按钮。若用 .seg-btn 泛选，
+  // 「部分还款策略」这类 seg-btn 会触发 setMode(undefined)，把 state.mode 清掉。
+  $$('.seg-btn[data-mode]').forEach((btn) => {
     btn.addEventListener('click', () => setMode(btn.dataset.mode));
   });
 
@@ -619,6 +702,27 @@ function bindEvents() {
     $('[data-amount="fund"]').value = String(state.fundQuota.final);
     updateQuota();
     recompute({ animate: true });
+  });
+
+  // 部分提前还款
+  $('[data-prepay-month]').addEventListener('input', () => {
+    state.prepayMonth = Math.round(readNumber('[data-prepay-month]')) || 120;
+    renderPrepay();
+  });
+
+  $('[data-prepay-amount]').addEventListener('input', () => {
+    state.prepayAmountWan = readNumber('[data-prepay-amount]') || 0;
+    renderPrepay();
+  });
+
+  $('[data-prepay-strategy]').addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-strategy]');
+    if (!btn) return;
+    state.prepayStrategy = btn.dataset.strategy;
+    $$('[data-prepay-strategy] .seg-btn').forEach((b) =>
+      b.classList.toggle('is-active', b === btn),
+    );
+    renderPrepay();
   });
 
   // Tab 切换

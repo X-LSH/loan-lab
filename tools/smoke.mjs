@@ -319,7 +319,41 @@ try {
   await cdp.click('[data-chart-toggle="payment"]');
   await settle(320);
 
-  /* ---------------------------------------------- 10. 公积金额度约束 */
+  /* ---------------------------------------------- 10. 部分提前还款 */
+  await cdp.eval(`(() => { document.querySelector('[data-mode="commercial"]').click(); })()`);
+  await settle(560);
+  await cdp.click('.tab[data-tab="payoff"]');
+  await settle(360);
+  check('部分还款卡存在', (await count('[data-prepay-result]')) === 1);
+  check('已切到纯商贷模式',
+    await cdp.eval(`document.querySelector('[data-mode="commercial"]').classList.contains('is-active')`));
+
+  await settle(320);
+  const prepayText = await text('[data-prepay-result]');
+  check('默认缩期结果可见', prepayText.includes('缩短'), prepayText.slice(0, 70));
+  check('显示节省利息', prepayText.includes('节省利息'));
+  check('显示违约金口径', prepayText.includes('违约金'), prepayText.slice(0, 70));
+
+  await cdp.click('[data-strategy="reduce"]');
+  await settle(360);
+  const reduceText = await text('[data-prepay-result]');
+  check('降月供结果显示新月供', reduceText.includes('月供降至'), reduceText.slice(0, 70));
+
+  await cdp.setInput('[data-prepay-amount]', '0');
+  await settle(320);
+  check('金额为 0 时给出错误',
+    (await text('[data-prepay-result]')).includes('大于 0'));
+
+  await cdp.setInput('[data-prepay-amount]', '30');
+  await cdp.setInput('[data-prepay-month]', '360');
+  await settle(320);
+  check('期数越界时给出错误',
+    (await text('[data-prepay-result]')).includes('需在 1 到'));
+
+  await cdp.setInput('[data-prepay-month]', '120');
+  await settle(320);
+
+  /* ---------------------------------------------- 11. 公积金额度约束 */
   await cdp.click('.seg-btn[data-mode="combo"]');
   await settle(720);
   await cdp.click('.tab[data-tab="schedule"]');

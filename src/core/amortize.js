@@ -102,8 +102,10 @@ export function buildSchedule(input) {
       if (periodsLeft <= 0 || balance <= 0) break;
 
       if (activeMonthly === null || rate !== activeRate) {
-        // 重定价：按「此刻的剩余本金 + 剩余期数」重算月供
-        activeMonthly = Math.round(annuityPayment(balance, i, periodsLeft));
+        // 重定价：按「此刻的剩余本金 + 剩余期数」重算月供。
+        // fixedMonthly 用于「部分提前还款后缩期」——此时月供是合同约定的常数，
+        // 不能让年金公式按新期数重算，否则月供会变，违背缩期的约定。
+        activeMonthly = input.fixedMonthly ?? Math.round(annuityPayment(balance, i, periodsLeft));
         activeRate = rate;
         paymentSteps.push({ period: year * 12 + 1, rate, monthly: activeMonthly });
         rateChanges.push({ period: year * 12 + 1, rate, monthly: activeMonthly });
