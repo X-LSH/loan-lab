@@ -22,7 +22,7 @@ const URL_UNDER_TEST = process.env.APP_URL ?? 'http://127.0.0.1:8080/index.html'
 const DEBUG_PORT = Number(process.env.CDP_PORT ?? 9347);
 const BASELINE_PATH = 'tools/visual-baseline.json';
 const UPDATE = process.argv.includes('--update');
-const THEMES = ['dark', 'light', 'xiaomi'];
+const THEMES = ['dark', 'light', 'xiaomi', 'voucher'];
 const TOLERANCE_PX = 2;
 
 const CHROME =
@@ -184,7 +184,7 @@ for (const theme of THEMES) {
 
 console.log('');
 if (diffs.length === 0) {
-  console.log('视觉基线一致：三套主题的尺寸、字号、颜色均未漂移');
+  console.log(`视觉基线一致：${THEMES.length} 套主题的尺寸、字号、颜色均未漂移`);
   process.exit(0);
 }
 

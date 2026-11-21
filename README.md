@@ -143,21 +143,30 @@ LPR 走势是假设，不是预测。快捷情景只作用于前 10 年（更贴
 
 ## 外观主题
 
-三套主题可在右上角切换，偏好写入 localStorage：
+四套主题可在右上角切换，偏好写入 localStorage：
 
 | 主题 | 视觉语言 |
 | --- | --- |
 | **深色**（默认） | Apple HIG — 纯黑背景、半透明标签、毛玻璃、铜色强调 |
 | **浅色** | Apple HIG — 系统灰背景、白卡片、铜色强调 |
 | **小米** | HyperOS — 明亮通透、品牌橙 `#FF6900`、更大圆角、渐变点缀、带色温的阴影 |
+| **凭证** | 银行存单 / 契约 — 冷纸白、墨绿正文、铜金装饰、朱红仅作事件标记 |
 
 Apple 那两套强调色保留铜色（产品的识别色）但质感对齐系统强调色；
-小米那套则是完整的品牌橙体系，圆角整体大一档，强调元素走渐变。
+小米那套是完整的品牌橙体系，圆角整体大一档，强调元素走渐变；
+凭证那套反过来——**直角取代圆角**，衬线标题 + 等宽数字，谈的是纸而不是屏幕。
 
-**小米主题还带布局变体**（不只换肤）：KPI 变成横向滑动的大卡片
-（`scroll-snap`，固定 264px 宽，第 4 张自然溢出以暗示可滑动），
-输入面板拆成独立卡片流（贷款构成 / 金额 / 期限 / 高级设置各自成卡）。
-Apple 两套仍是标准双栏 + 四列 KPI 网格，结构不受影响。
+**小米与凭证都带布局变体**（不只换肤）。
+
+- 小米：KPI 变成横向滑动的大卡片（`scroll-snap`，固定 264px 宽，
+  第 4 张自然溢出以暗示可滑动），输入面板拆成独立卡片流
+- 凭证：卡片用**双线边框**（外层实线 + 内层细线，模拟印刷边框），
+  KPI 连成**票据格**（竖线分隔，不再各自成卡），标题走衬线铭文，
+  数字走等宽以便小数点对齐，顶栏放**凭证编号**，结果卡盖一枚图形印章
+- Apple 两套仍是标准双栏 + 四列 KPI 网格，结构不受影响
+
+凭证主题的印章刻意做成**纯图形**（同心圆 + 齿边 + 对勾）而非文字：
+装饰性图形不受文字对比度约束，也不会被误读成信息。
 
 主题由 CSS 变量驱动，图表的渐变 `stop-color` 同样走变量，切换时无需重绘。
 
@@ -172,7 +181,7 @@ Apple 两套仍是标准双栏 + 四列 KPI 网格，结构不受影响。
   `fill` 由 attribute 指向渐变——两者不能都走 CSS，否则会被覆盖
 
 ```js
-document.documentElement.dataset.theme  // 'dark' | 'light'
+document.documentElement.dataset.theme  // 'dark' | 'light' | 'xiaomi' | 'voucher'
 localStorage.getItem('loanlab-theme')   // 用户手动选择后记住
 ```
 
@@ -265,7 +274,7 @@ npx -y modern-web-guidance@latest retrieve dark-mode
 ```bash
 node --test tests/core.test.mjs tests/quota.test.mjs tests/prepay.test.mjs  # 61 项
 node tools/smoke.mjs       # 122 项：真实浏览器加载与交互
-node tools/a11y.mjs        # axe-core：3 主题 × 3 视图的 WCAG A/AA 扫描
+node tools/a11y.mjs        # axe-core：4 主题 × 3 视图的 WCAG A/AA 扫描
 node tools/visual.mjs      # 视觉基线比对（尺寸、字号、颜色是否漂移）
 node tools/screenshot.mjs  # 输出到 docs/screenshots/
 ```

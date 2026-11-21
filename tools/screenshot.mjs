@@ -156,6 +156,21 @@ try {
   await cdp.click('.tab[data-tab="compare"]');
   await sleep(500);
   await shot('14-compare-xiaomi.png');
+
+  // 凭证主题
+  await cdp.click('[data-theme-set="voucher"]');
+  await sleep(700);
+  await cdp.click('.tab[data-tab="schedule"]');
+  await sleep(400);
+  await shot('15-overview-voucher.png');
+
+  await cdp.click('.tab[data-tab="payoff"]');
+  await sleep(500);
+  await shot('16-payoff-voucher.png');
+
+  await cdp.click('.tab[data-tab="compare"]');
+  await sleep(500);
+  await shot('17-compare-voucher.png');
 } finally {
   try {
     await cdp.send('Browser.close');

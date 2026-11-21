@@ -24,7 +24,7 @@ const CHROME =
   process.env.CHROME_PATH ??
   'C:/Users/LSH/AppData/Local/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-win64/chrome-headless-shell.exe';
 
-const THEMES = ['dark', 'light', 'xiaomi'];
+const THEMES = ['dark', 'light', 'xiaomi', 'voucher'];
 const TABS = ['schedule', 'payoff', 'compare'];
 
 async function launchBrowser() {
@@ -134,7 +134,7 @@ try {
 
 console.log('');
 if (totalViolations === 0) {
-  console.log('全部通过：三套主题 × 三个视图，未发现 WCAG A/AA 违规');
+  console.log(`全部通过：${THEMES.length} 套主题 × ${TABS.length} 个视图，未发现 WCAG A/AA 违规`);
   process.exit(0);
 } else {
   console.log(`共 ${totalViolations} 类违规，需要修复`);

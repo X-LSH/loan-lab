@@ -451,6 +451,13 @@ function renderPrepay({ validate = false } = {}) {
     const savedClass = cmp.savedInterest > 0 ? 'pos' : 'neg';
     el.className = 'prepay-result';
     el.innerHTML =
+      // 图形印章：外圈细线、中间齿边、内圈细线，模仿真实印章的同心结构
+      `<svg class="voucher-seal" viewBox="0 0 100 100" aria-hidden="true">` +
+      `<circle cx="50" cy="50" r="47" fill="none" stroke="currentColor" stroke-width="1.2"/>` +
+      `<circle cx="50" cy="50" r="43" fill="none" stroke="currentColor" stroke-width="2.4" stroke-dasharray="1.6 2.6"/>` +
+      `<circle cx="50" cy="50" r="37" fill="none" stroke="currentColor" stroke-width="0.6"/>` +
+      `<path d="M35 51l9 10 21-22" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>` +
+      `</svg>` +
       `<div class="prepay-headline">${headline}</div>` +
       `<div class="prepay-rows">` +
       `<div class="prepay-item"><div class="k">提前还款</div><div class="v">${yuan(result.prepayAmount)}</div></div>` +
@@ -499,7 +506,7 @@ function setMode(mode) {
   recompute({ animate: true });
 }
 
-const THEMES = ['dark', 'light', 'xiaomi'];
+const THEMES = ['dark', 'light', 'xiaomi', 'voucher'];
 
 /* ------------------------------------------------------------------ 卡片模块化 */
 
@@ -836,6 +843,14 @@ function init() {
   bindEvents();
   // head 里的内联脚本已按系统偏好或 localStorage 设好主题，这里只同步按钮状态
   applyTheme(document.documentElement.dataset.theme || 'dark');
+
+  // 凭证主题的编号：跟随实际日期，像一张当日开出的单据
+  const serial = $('[data-serial]');
+  if (serial) {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    serial.textContent = `NO. LL-${now.getFullYear()}-${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+  }
   $$('[data-term-preset]').forEach((b) => b.classList.toggle('is-active', b.dataset.termPreset === '30'));
   $$('[data-lpr-scenario]').forEach((b) => b.classList.toggle('is-active', b.dataset.lprScenario === 'flat'));
   updateRateHints();

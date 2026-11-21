@@ -503,6 +503,18 @@ try {
   check('已设置 accent-color',
     (await cdp.eval(`getComputedStyle(document.body).accentColor`)) !== 'auto');
 
+  /* ---------- 凭证主题 ---------- */
+  await cdp.eval(`document.querySelector('[data-theme-set="voucher"]').click()`);
+  await settle(680);
+  const serialText = await cdp.eval(`document.querySelector('[data-serial]')?.textContent.trim() ?? ''`);
+  check('凭证主题生成凭证编号', /^NO\. LL-\d{4}-\d{4}$/.test(serialText), serialText);
+  check('凭证主题下编号可见',
+    await cdp.eval(`getComputedStyle(document.querySelector('[data-serial]')).display !== 'none'`));
+  check('凭证主题用直角（--r-xl 不超过 6px）',
+    await cdp.eval(`parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--r-xl')) <= 6`));
+  await cdp.eval(`document.querySelector('[data-theme-set="dark"]').click()`);
+  await settle(520);
+
   /* ---------- 可访问性：landmark / tab / 折叠 / skip link ---------- */
   check('存在唯一 main 地标',
     (await cdp.eval(`document.querySelectorAll('main').length`)) === 1);

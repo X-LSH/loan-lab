@@ -58,6 +58,10 @@
   --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
     "Segoe UI Variable Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   --mono: "SF Mono", ui-monospace, "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+  /* 衬线：只在凭证主题使用。优先系统自带的 Didone/旧式衬线，
+     中文回落到宋体系 —— 不引外部字体，避免首屏闪烁与网络依赖 */
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Songti SC",
+    "Source Han Serif SC", "Noto Serif CJK SC", SimSun, Georgia, serif;
 
   /* 字号一律用 rem：用户把浏览器默认字号调大时，整套排版会等比放大。
      若用 px，无论用户怎么设置都纹丝不动 —— 这是可访问性硬伤。 */
@@ -228,4 +232,81 @@
 
   --gap: 22px;
   --pad-card: 22px;
+}
+
+/* ---------------- 凭证主题（Certificate） ----------------
+   灵感来自真实银行存单与契约：冷纸白而不是暖米色，墨绿承载结构与文字，
+   铜金只做编号与印章，朱红只在"事件"出现时使用。
+   形状是直角而非圆角 —— 票据是印刷品，不是 App 卡片。
+   ---------------------------------------------------------- */
+:root[data-theme="voucher"] {
+  color-scheme: light;
+
+  /* 冷纸白：真实票据的纸基，带一点灰绿，不是暖米色 */
+  --bg: #edebe4;
+  --bg-sunken: #e4e2d9;
+  --surface: #faf9f4;
+  --surface-2: #f2f0e8;
+  --surface-3: #e7e4da;
+  --surface-hi: #dbd7ca;
+  --glass: rgba(250, 249, 244, 0.84);
+  --glass-thick: rgba(250, 249, 244, 0.95);
+
+  /* 结构线：像印刷的裁切与表格线 */
+  --line: rgba(28, 48, 38, 0.18);
+  --line-strong: rgba(28, 48, 38, 0.34);
+  --line-hair: rgba(28, 48, 38, 0.1);
+  --line-field: rgba(28, 48, 38, 0.45);
+
+  /* 墨绿：正文与表格的数字都靠它 */
+  --ink: #16261d;
+  --ink-2: #33473a;
+  --ink-3: #5a6a5e;
+  --ink-4: #a3ada4;
+
+  /* 铜金：编号、印章、装饰性标尺 */
+  --accent: #8a6a2f;
+  --accent-ink: #6b4f1f;
+  --accent-deep: #513b14;
+  --accent-soft: rgba(138, 106, 47, 0.11);
+  --accent-ring: rgba(138, 106, 47, 0.28);
+
+  /* 语义：本金用墨绿、利息用铜金、节省用深绿、警示用朱红 */
+  --principal: #2f5c47;
+  --principal-soft: rgba(47, 92, 71, 0.1);
+  --principal-text: #21402f;
+  --interest: #8a6427;
+  --interest-soft: rgba(138, 100, 39, 0.13);
+  --saved: #2f5c47;
+  --saved-soft: rgba(47, 92, 71, 0.1);
+  --saved-ink: #1d3d2c;
+  --warn: #9c3520;
+  --warn-soft: rgba(156, 53, 32, 0.1);
+
+  /* 形状：票据是直角，不做胶囊与连续圆角 */
+  --r-xs: 2px;
+  --r-sm: 3px;
+  --r-md: 4px;
+  --r-lg: 5px;
+  --r-xl: 6px;
+  --r-pill: 3px;
+
+  /* 阴影：纸的层次靠细边框，不靠投影 */
+  --shadow-xs: 0 1px 1px rgba(28, 48, 38, 0.05);
+  --shadow-sm: 0 1px 2px rgba(28, 48, 38, 0.06);
+  --shadow: 0 2px 5px rgba(28, 48, 38, 0.07);
+  --shadow-lg: 0 6px 16px rgba(28, 48, 38, 0.09);
+  --inset-hi: inset 0 0 0 transparent;
+
+  /* 动效：票据要沉稳，去掉弹簧过冲 */
+  --ease-out: cubic-bezier(0.3, 0.7, 0.4, 1);
+  --ease-inout: cubic-bezier(0.5, 0, 0.5, 1);
+  --ease-spring: cubic-bezier(0.3, 0.7, 0.4, 1);
+  --ease-spring-soft: cubic-bezier(0.3, 0.7, 0.4, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 320ms;
+
+  --gap: 16px;
+  --pad-card: 18px;
 }

@@ -919,6 +919,165 @@ input[type="range"].slider::-moz-range-thumb {
   }
 }
 
+/* ============================================================
+   凭证主题的布局变体
+   —— 不只是换色，结构与排版都在变：双线边框、衬线铭文、账簿数字
+   ============================================================ */
+
+/* 双线边框：外层实线 + 内层细线，模拟票据的印刷边框 */
+:root[data-theme="voucher"] .card {
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  box-shadow: none;
+  background: var(--surface);
+  position: relative;
+}
+
+:root[data-theme="voucher"] .card::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--line-hair);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+/* 内容压在内框之上，否则会被 ::before 盖住 */
+:root[data-theme="voucher"] .card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 衬线铭文：标题像印在纸上的字，不是屏幕上的文字 */
+:root[data-theme="voucher"] .brand-text h1,
+:root[data-theme="voucher"] .card-head h2,
+:root[data-theme="voucher"] .cmp-card h3 {
+  font-family: var(--serif);
+  font-weight: 600;
+  letter-spacing: 0.015em;
+}
+
+/* 账簿数字：等宽，右对齐时小数点能对齐 */
+:root[data-theme="voucher"] .kpi-value,
+:root[data-theme="voucher"] .num,
+:root[data-theme="voucher"] .data-table td,
+:root[data-theme="voucher"] .cmp-row dd,
+:root[data-theme="voucher"] .prepay-item .v {
+  font-family: var(--mono);
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.015em;
+}
+
+/* KPI 做成票据格：连成一整块，竖线分隔，而不是四张独立卡片 */
+:root[data-theme="voucher"] .kpis {
+  gap: 0;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  border-radius: 2px;
+  padding: 0;
+}
+
+:root[data-theme="voucher"] .kpi {
+  border: none;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+:root[data-theme="voucher"] .kpi:last-child {
+  border-right: none;
+}
+
+/* 顶部识别色条改成铜金细线，像票据的顶栏 */
+:root[data-theme="voucher"] .kpi::before {
+  background: var(--accent);
+  height: 1.5px;
+}
+
+/* 表格：账簿风格 —— 细横线、无斑马纹、数字右对齐 */
+:root[data-theme="voucher"] .data-table th {
+  border-bottom: 1px solid var(--line-strong);
+  font-family: var(--serif);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: var(--fs-cap2);
+}
+
+:root[data-theme="voucher"] .data-table td {
+  border-bottom: 1px solid var(--line-hair);
+}
+
+:root[data-theme="voucher"] .data-table tbody tr:hover {
+  background: var(--accent-soft);
+}
+
+/* 分段控件：方正、细边，不做胶囊 */
+:root[data-theme="voucher"] .segmented,
+:root[data-theme="voucher"] .seg-btn,
+:root[data-theme="voucher"] .chip,
+:root[data-theme="voucher"] .mini-btn {
+  border-radius: 2px;
+}
+
+/* 顶栏：底部用双线，像信笺抬头 */
+:root[data-theme="voucher"] .topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+:root[data-theme="voucher"] .topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  height: 1px;
+  background: var(--line-hair);
+}
+
+/* 凭证编号：只在凭证主题出现 */
+.voucher-serial {
+  display: none;
+}
+
+:root[data-theme="voucher"] .voucher-serial {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: var(--fs-cap2);
+  letter-spacing: 0.16em;
+  color: var(--accent-ink);
+  padding: 3px 8px;
+  border: 1px solid var(--line-field);
+  border-radius: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* 印章：做成纯图形（同心圆 + 齿边），不承载文字 ——
+   装饰性图形不受文字对比度约束，也不会被误读成信息 */
+.voucher-seal {
+  display: none;
+}
+
+:root[data-theme="voucher"] .voucher-seal {
+  display: block;
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 56px;
+  height: 56px;
+  color: var(--warn);
+  opacity: 0.42;
+  transform: rotate(-11deg);
+  pointer-events: none;
+  z-index: 2;
+}
+
+:root[data-theme="voucher"] .prepay-result {
+  position: relative;
+}
+
 /* ---------------- 小米布局变体：卡片化模块流 ----------------
    这不只是换肤，是换结构：KPI 变横向滑动大卡片、输入面板拆成
    独立卡片流。只在小米主题下生效，Apple 两套的双栏布局不受影响。
