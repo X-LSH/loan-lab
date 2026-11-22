@@ -7,6 +7,14 @@
 
 import { formatCents } from '../core/money.js';
 import { compareAtMonth, settleDiffCurve, tradeoff, cumulativeExtraCash } from '../core/breakeven.js';
+import {
+  assessAffordability,
+  stressPlanPayment,
+  maxRateForPayment,
+  maxPrincipalForPayment,
+  affordabilityVerdict,
+  RATE_BUMPS,
+} from '../core/affordability.js';
 
 const yuan = (cents) => formatCents(cents);
 const wan = (cents) => (cents / 100 / 10000).toFixed(2);
@@ -292,4 +300,94 @@ export function renderSettleAnalysis(el, cmp, { year = 10, penaltyOpts = {} } = 
     tradeoff: t,
     curve: settleDiffCurve(a, b, { penaltyOpts }),
   };
+}
+
+/**
+ * 负担能力：把月供放回「收入」这个参照系里看。
+ *
+ * 收入缺失时不给结论 —— 没有参照系，任何「合理/不合理」都是编的。
+ */
+export function renderAffordability(el, plan, { incomeWan = 0, debtWan = 0 } = {}) {
+  const payment = plan.merged.summary.firstPayment;
+  const income = Math.round(incomeWan * 10000 * 100);
+  const debt = Math.round(debtWan * 10000 * 100);
+
+  if (!(income > 0)) {
+    el.innerHTML =
+      `<p class="afford-empty">填入家庭月收入后，这里会给出判断：这笔月供在收入里占多少、` +
+      `利率上浮后会不会超出常见的审批线。</p>`;
+    return null;
+  }
+
+  const a = assessAffordability({ monthlyIncome: income, monthlyDebt: debt, payment });
+  if (!a) {
+    el.innerHTML = `<p class="afford-empty">收入数值无效。</p>`;
+    return null;
+  }
+
+  const stress = RATE_BUMPS.map((bump) => ({
+    bump,
+    payment: stressPlanPayment(plan.schedules, bump),
+  }));
+  const worst = stress.at(-1);
+
+  const maxRate = maxRateForPayment({
+    principal: plan.merged.totals.principal,
+    months: plan.merged.months,
+    maxPayment: a.paymentRoom,
+  });
+
+  // 额度要逐笔算：合并排期没有单一利率（两笔利率不同，且末期归零），
+  // 拿它反推会得到「零利率」结果，算出来的额度高得离谱。
+  const totalPrincipal = plan.merged.totals.principal || 1;
+  const maxPrincipal = plan.schedules.reduce((sum, s) => {
+    const p = s.totals?.principal ?? s.principal;
+    const room = Math.round(a.paymentRoom * (p / totalPrincipal));
+    return (
+      sum +
+      maxPrincipalForPayment({
+        months: s.months,
+        annualRate: s.annualRate ?? 0,
+        maxPayment: room,
+      })
+    );
+  }, 0);
+
+  const verdict = affordabilityVerdict(a);
+  const level = {
+    over: '超出常见审批线',
+    tight: '偏紧',
+    moderate: '适中',
+    comfortable: '宽裕',
+  }[verdict];
+
+  const cellClass =
+    verdict === 'over' ? 'is-warn' : verdict === 'tight' ? 'is-warn' : 'is-saved';
+
+  el.innerHTML = `
+    <div class="settle-cell ${cellClass}">
+      <div class="k">月供占收入</div>
+      <div class="v">${(a.totalDti * 100).toFixed(1)}%</div>
+      <div class="s">${level}${debt > 0 ? '（含其他月供）' : ''}</div>
+    </div>
+    <div class="settle-cell">
+      <div class="k">利率 +${Math.round(worst.bump * 10000)}bp 后月供</div>
+      <div class="v">${yuan(worst.payment)}</div>
+      <div class="s">每月多 ${yuan(worst.payment - payment)}</div>
+    </div>
+    <div class="settle-cell is-saved">
+      <div class="k">还能承受的最高利率</div>
+      <div class="v">${(maxRate * 100).toFixed(2)}%</div>
+      <div class="s">再高就超出 ${(a.maxDti * 100).toFixed(0)}% 线</div>
+    </div>
+    <p class="settle-verdict">${
+      a.withinLimit
+        ? `按 ${(a.maxDti * 100).toFixed(0)}% 的常见审批线，你还有 ${yuan(Math.max(0, a.headroom))} 的月供余量。` +
+          `以同样收入，当前利率下最多可贷 ${yuan(maxPrincipal)}。`
+        : `月供已占收入 ${(a.totalDti * 100).toFixed(1)}%，超出 ${(a.maxDti * 100).toFixed(0)}% 的常见审批线 ${yuan(Math.abs(a.headroom))}。` +
+          `要么降低贷款额，要么拉长期限，或提高首付。`
+    }</p>
+  `;
+
+  return { assessment: a, stress, maxRate, maxPrincipal, verdict };
 }

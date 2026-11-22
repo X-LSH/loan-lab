@@ -619,6 +619,13 @@ input[type="range"].slider::-moz-range-thumb {
   width: 128px;
 }
 
+/* label 与输入框成组，避免 label 单独被 flex 拉到别的位置 */
+.settle-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .settle-bar .field-note {
   margin: 0 0 3px;
   flex: 1 1 220px;
@@ -682,6 +689,18 @@ input[type="range"].slider::-moz-range-thumb {
   font-size: var(--fs-sub);
   line-height: 1.65;
   color: var(--ink-2);
+}
+
+/* 收入未填时的占位说明：不编造结论，明确告诉用户缺什么 */
+.afford-empty {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-sm);
+  color: var(--ink-3);
+  font-size: var(--fs-sub);
+  line-height: 1.65;
+  text-align: center;
 }
 
 @media (max-width: 720px) {

@@ -503,6 +503,34 @@ try {
   check('已设置 accent-color',
     (await cdp.eval(`getComputedStyle(document.body).accentColor`)) !== 'auto');
 
+  /* ---------- 负担能力 ---------- */
+  await cdp.click('.tab[data-tab="schedule"]');
+  await settle(500);
+  check('负担能力三格数据齐全',
+    (await count('[data-afford-result] .settle-cell')) === 3,
+    String(await count('[data-afford-result] .settle-cell')));
+
+  // 月供必须是最多两位小数 —— 曾经因为浮点没取整显示成 4,803.23512242428842
+  const affordText = await text('[data-afford-result]');
+  check('压力测试月供已取整到分', !/\d\.\d{3,}/.test(affordText), affordText.slice(0, 60));
+
+  // 额度须按实际利率反推：3 万收入 / 50% 线 / 3.05% / 30 年约为 353 万，
+  // 若误用零利率会算出 540 万
+  const loanAmount = await cdp.eval(`(() => {
+    const t = document.querySelector('[data-afford-result]')?.textContent ?? '';
+    const m = t.match(/最多可贷 ([\\d,]+(?:\\.\\d+)?)/);
+    return m ? parseFloat(m[1].replace(/,/g, '')) : 0;
+  })()`);
+  check('最高可贷额度按实际利率反推', loanAmount > 3_000_000 && loanAmount < 4_000_000, String(loanAmount));
+
+  await cdp.setInput('[data-income]', '1');
+  await settle(420);
+  check('收入降低后判定变紧',
+    (await text('[data-afford-result]')).includes('%'),
+    '仍有评估结果');
+  await cdp.setInput('[data-income]', '3');
+  await settle(420);
+
   /* ---------- 结清时点分析 ---------- */
   await cdp.click('.tab[data-tab="compare"]');
   await settle(620);

@@ -27,6 +27,7 @@ node tools/serve.mjs          # 打开 http://127.0.0.1:8080
 | 部分提前还款 | 还一部分后继续供，可选缩期或降月供，给出节省利息、违约金、新期数 |
 | 方式对比 | 月供压力曲线 + 累计利息曲线，直观看出省息从哪来、前期差多少 |
 | 结清时点分析 | 指定「打算 N 年后结清」，对比两种方式的总支出差、同期多垫的现金，并给出「这笔置换划不划算」的判断 |
+| 负担能力 | 填入家庭月收入与其他月供，算出月供收入比、利率上浮 100bp 后的月供、还能承受的最高利率，以及同收入下的可贷上限 |
 | 卡片模块化 | 结果卡片可折叠（状态记忆），图表可切换形态（折线/面积、堆叠/百分比） |
 
 ## 计算规则
@@ -273,8 +274,8 @@ npx -y modern-web-guidance@latest retrieve dark-mode
 ## 测试
 
 ```bash
-node --test tests/core.test.mjs tests/quota.test.mjs tests/prepay.test.mjs tests/breakeven.test.mjs  # 71 项
-node tools/smoke.mjs       # 128 项：真实浏览器加载与交互
+node --test tests/*.test.mjs  # 81 项：公式、恒等式、反向求解互逆
+node tools/smoke.mjs       # 132 项：真实浏览器加载与交互
 node tools/a11y.mjs        # axe-core：4 主题 × 3 视图的 WCAG A/AA 扫描
 node tools/visual.mjs      # 视觉基线比对（尺寸、字号、颜色是否漂移）
 node tools/screenshot.mjs  # 输出到 docs/screenshots/

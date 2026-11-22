@@ -12,7 +12,7 @@ import {
   FUND_CITIES, DEFAULT_CITY_ID, getCity, resolveQuota, describeQuota,
 } from './core/quota.js';
 import { buildPrepayPlan, comparePrepay, PREPAY_STRATEGY } from './core/prepay.js';
-import { renderKpis, mountPayoffHighlight, updatePayoffHighlight, renderCompare, renderSettleAnalysis } from './ui/summary.js';
+import { renderKpis, mountPayoffHighlight, updatePayoffHighlight, renderCompare, renderSettleAnalysis, renderAffordability } from './ui/summary.js';
 import { renderMonthlyTable, renderYearlyTable, renderPayoffTable, renderSplitNote } from './ui/tables.js';
 import { renderStackedBars, renderPayoffChart, renderPaymentChart, renderPaymentCompareChart, renderInterestCompareChart, renderSettleDiffChart } from './ui/charts.js';
 
@@ -42,6 +42,9 @@ const state = {
   prepayStrategy: PREPAY_STRATEGY.SHORTEN,
   // 结清时点分析
   settleYear: 10,
+  // 负担能力
+  incomeWan: 3,
+  debtWan: 0,
 };
 
 let plan = null;
@@ -157,6 +160,12 @@ function renderAll(years, { animate = false } = {}) {
   redrawCharts();
   renderScheduleTable();
   renderPayoffTable($('#payoff-table'), plan.payoff, { selectedMonth: state.selectedMonth });
+  // 负担能力：把月供放回收入这个参照系
+  renderAffordability($('[data-afford-result]'), plan, {
+    incomeWan: state.incomeWan,
+    debtWan: state.debtWan,
+  });
+
   renderCompare($('#compare-body'), cmp, plan);
 
   // 结清时点分析：把「省下的利息」与「前期多垫的现金」放在一起看
@@ -771,6 +780,16 @@ function bindEvents() {
     const clamped = Math.min(Math.max(Math.round(readNumber('[data-settle-year]')) || 10, 1), 30);
     state.settleYear = clamped;
     $('[data-settle-year]').value = String(clamped);
+    renderAll();
+  });
+
+  // 收入与负债：输入时实时更新。收入为 0 时结果区显示占位说明，不编造结论
+  $('[data-income]').addEventListener('input', () => {
+    state.incomeWan = readNumber('[data-income]') || 0;
+    renderAll();
+  });
+  $('[data-debt]').addEventListener('input', () => {
+    state.debtWan = readNumber('[data-debt]') || 0;
     renderAll();
   });
 

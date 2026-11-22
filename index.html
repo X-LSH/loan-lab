@@ -295,6 +295,33 @@
 
     <!-- 还款计划 -->
     <div class="tab-panel is-active" id="panel-schedule" role="tabpanel" aria-labelledby="tab-schedule" tabindex="0" data-panel="schedule">
+      <section class="card is-collapsible" data-card="afford">
+        <div class="card-head">
+          <div>
+            <h2>这笔月供，我的收入扛得住吗</h2>
+            <p class="card-sub">按行业常见的月供收入比 50% 估算。各家银行口径不同，仅作参考，不构成贷款承诺。</p>
+          </div>
+        </div>
+        <div class="settle-bar">
+          <div class="settle-field">
+            <label class="field-label" for="monthly-income">家庭月收入</label>
+            <div class="input-wrap settle-input">
+              <input id="monthly-income" class="input num" type="number" min="0" step="0.1" value="3" aria-describedby="afford-note" data-income />
+              <span class="input-suffix">万元</span>
+            </div>
+          </div>
+          <div class="settle-field">
+            <label class="field-label" for="monthly-debt">其他月供</label>
+            <div class="input-wrap settle-input">
+              <input id="monthly-debt" class="input num" type="number" min="0" step="0.1" value="0" data-debt />
+              <span class="input-suffix">万元</span>
+            </div>
+          </div>
+          <p class="field-note" id="afford-note">含车贷、消费贷等其他正在还的月供</p>
+        </div>
+        <div class="settle-grid" data-afford-result></div>
+      </section>
+
       <section class="card is-collapsible" data-card="payment">
         <div class="card-head">
           <div class="card-head-text">
