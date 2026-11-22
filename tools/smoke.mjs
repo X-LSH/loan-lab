@@ -531,6 +531,23 @@ try {
   await cdp.setInput('[data-income]', '3');
   await settle(420);
 
+  /* ---------- 购房税费 ---------- */
+  check('税费三格数据齐全',
+    (await count('[data-tax-result] .settle-cell')) === 3,
+    String(await count('[data-tax-result] .settle-cell')));
+
+  const taxText = await text('[data-tax-result]');
+  check('税费数字不含超长小数', !/\d\.\d{3,}/.test(taxText));
+
+  // 总投入必须含房款：曾经写成「首付 + 过户 + 利息」，把贷款本金整个漏掉，
+  // 142 万房款算出 109 万总投入
+  const totalCost = await cdp.eval(`(() => {
+    const cells = document.querySelectorAll('[data-tax-result] .settle-cell');
+    const v = cells[2]?.querySelector('.v')?.textContent ?? '';
+    return parseFloat(v.replace(/[^0-9.]/g, '')) || 0;
+  })()`);
+  check('总投入含房款（大于 200 万）', totalCost > 2_000_000, String(totalCost));
+
   /* ---------- 结清时点分析 ---------- */
   await cdp.click('.tab[data-tab="compare"]');
   await settle(620);

@@ -391,3 +391,41 @@ export function renderAffordability(el, plan, { incomeWan = 0, debtWan = 0 } = {
 
   return { assessment: a, stress, maxRate, maxPrincipal, verdict };
 }
+
+/**
+ * 购房总成本：把「除了房款还要掏多少」摊开。
+ */
+export function renderPurchaseCost(resultEl, verdictEl, costs) {
+  if (!resultEl || !costs) return;
+
+  const taxTotal = costs.deed + costs.vat + costs.incomeTax;
+
+  resultEl.innerHTML = `
+    <div class="settle-cell is-warn">
+      <div class="k">过户时要一次付清</div>
+      <div class="v">${yuan(costs.closingCosts)}</div>
+      <div class="s">相当于房款的 ${(costs.closingRatio * 100).toFixed(2)}%</div>
+    </div>
+    <div class="settle-cell">
+      <div class="k">税费小计</div>
+      <div class="v">${yuan(taxTotal)}</div>
+      <div class="s">契税 ${yuan(costs.deed)} · 增值税 ${yuan(costs.vat)} · 个税 ${yuan(costs.incomeTax)}</div>
+    </div>
+    <div class="settle-cell is-saved">
+      <div class="k">从签约到还完的总投入</div>
+      <div class="v">${yuan(costs.totalOutlay)}</div>
+      <div class="s">首付 ${yuan(costs.downPayment)} + 过户 ${yuan(costs.closingCosts)} + 利息 ${yuan(costs.totalInterest)}</div>
+    </div>
+  `;
+
+  if (verdictEl) {
+    const advice =
+      costs.vat > 0
+        ? '未满两年，增值税及附加要按全额征收 —— 这是最容易被忽略的一笔。'
+        : costs.incomeTax > 0
+          ? '满两年免了增值税，但个税还在；如果这是卖家的唯一住房且满五年，这笔就能省下。'
+          : '增值税与个税都免征，过户阶段主要是契税和中介费。';
+    verdictEl.textContent =
+      `除了 ${yuan(costs.price)} 的房款，还要在过户阶段另外准备 ${yuan(costs.closingCosts)}。${advice}`;
+  }
+}

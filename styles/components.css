@@ -409,6 +409,24 @@
   transform: none;
 }
 
+/* 单个勾选项：用原生 checkbox + accent-color，不自己重绘 */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: var(--fs-sub);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.check-row input {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+}
+
 /* 触屏设备上所有输入控件字号拉到 1rem：低于 16px 时 iOS 聚焦会自动放大整页，
    而且粗指针下更大的字号本身也更好点选 */
 @media (pointer: coarse) {

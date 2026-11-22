@@ -272,6 +272,65 @@
         </div>
       </details>
 
+      <details class="advanced">
+        <summary>
+          <span>购房税费</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        </summary>
+        <div class="advanced-body">
+          <div class="field">
+            <label class="field-label" for="down-ratio">首付比例</label>
+            <div class="input-wrap">
+              <input id="down-ratio" class="input num" type="number" inputmode="decimal" step="5" min="0" max="100" value="30" aria-describedby="down-note" data-down-ratio />
+              <span class="input-suffix">%</span>
+            </div>
+            <p class="field-note" id="down-note">用来反推房款：房款 = 贷款 ÷（1 − 首付比例）</p>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="area-sqm">建筑面积</label>
+            <div class="input-wrap">
+              <input id="area-sqm" class="input num" type="number" inputmode="decimal" step="1" min="0" value="100" aria-describedby="area-note" data-area />
+              <span class="input-suffix">㎡</span>
+            </div>
+            <p class="field-note" id="area-note">契税以 90㎡ 为分界</p>
+          </div>
+
+          <div class="field">
+            <label class="field-label" id="home-count-label">家庭住房套数<span class="unit">（含本次）</span></label>
+            <div class="segmented" role="radiogroup" aria-labelledby="home-count-label">
+              <button type="button" class="seg-btn is-active" data-home-count="1" role="radio" aria-checked="true">首套</button>
+              <button type="button" class="seg-btn" data-home-count="2" role="radio" aria-checked="false">二套</button>
+              <button type="button" class="seg-btn" data-home-count="3" role="radio" aria-checked="false">三套+</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" id="property-label">房屋性质</label>
+            <div class="segmented" role="radiogroup" aria-labelledby="property-label">
+              <button type="button" class="seg-btn is-active" data-property="residential" role="radio" aria-checked="true">住宅</button>
+              <button type="button" class="seg-btn" data-property="non-residential" role="radio" aria-checked="false">非住宅</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="seller-years">卖家持有年限</label>
+            <div class="input-wrap">
+              <input id="seller-years" class="input num" type="number" inputmode="numeric" step="1" min="0" value="0" aria-describedby="seller-note" data-seller-years />
+              <span class="input-suffix">年</span>
+            </div>
+            <p class="field-note" id="seller-note">满 2 年免增值税，满 5 年且唯一免个税</p>
+          </div>
+
+          <label class="check-row">
+            <input type="checkbox" data-only-home />
+            <span>卖家这套是唯一住房</span>
+          </label>
+
+          <p class="field-note">按全国常见口径估算，实际以当地税务与房管部门为准。</p>
+        </div>
+      </details>
+
       <p class="form-error" id="form-error" role="alert" hidden></p>
   </form>
 
@@ -320,6 +379,17 @@
           <p class="field-note" id="afford-note">含车贷、消费贷等其他正在还的月供</p>
         </div>
         <div class="settle-grid" data-afford-result></div>
+      </section>
+
+      <section class="card is-collapsible" data-card="purchase-cost">
+        <div class="card-head">
+          <div>
+            <h2>买房除了房款，还要准备多少钱</h2>
+            <p class="card-sub">契税、增值税、个税、中介费按常见口径估算，不含装修与家电。真实金额以过户时的税单为准。</p>
+          </div>
+        </div>
+        <div class="settle-grid" data-tax-result></div>
+        <p class="settle-verdict" data-tax-verdict></p>
       </section>
 
       <section class="card is-collapsible" data-card="payment">

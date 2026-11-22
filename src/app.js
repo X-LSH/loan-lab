@@ -12,7 +12,8 @@ import {
   FUND_CITIES, DEFAULT_CITY_ID, getCity, resolveQuota, describeQuota,
 } from './core/quota.js';
 import { buildPrepayPlan, comparePrepay, PREPAY_STRATEGY } from './core/prepay.js';
-import { renderKpis, mountPayoffHighlight, updatePayoffHighlight, renderCompare, renderSettleAnalysis, renderAffordability } from './ui/summary.js';
+import { estimatePurchaseCosts } from './core/taxes.js';
+import { renderKpis, mountPayoffHighlight, updatePayoffHighlight, renderCompare, renderSettleAnalysis, renderAffordability, renderPurchaseCost } from './ui/summary.js';
 import { renderMonthlyTable, renderYearlyTable, renderPayoffTable, renderSplitNote } from './ui/tables.js';
 import { renderStackedBars, renderPayoffChart, renderPaymentChart, renderPaymentCompareChart, renderInterestCompareChart, renderSettleDiffChart } from './ui/charts.js';
 
@@ -45,6 +46,14 @@ const state = {
   // 负担能力
   incomeWan: 3,
   debtWan: 0,
+  // 购房税费
+  downRatio: 30,
+  areaSqm: 100,
+  homeCount: 1,
+  isResidential: true,
+  sellerYears: 0,
+  isOnlyHome: false,
+  agencyRate: 0.02,
 };
 
 let plan = null;
@@ -165,6 +174,23 @@ function renderAll(years, { animate = false } = {}) {
     incomeWan: state.incomeWan,
     debtWan: state.debtWan,
   });
+
+  // 购房税费：界面只输入贷款额，房款按首付比例反推
+  const loanPrincipal = plan.merged.totals.principal;
+  const downRatio = Math.min(Math.max(state.downRatio / 100, 0), 0.95);
+  const price = Math.round(loanPrincipal / (1 - downRatio));
+  const taxCosts = estimatePurchaseCosts({
+    price,
+    areaSqm: state.areaSqm,
+    homeCount: state.homeCount,
+    isResidential: state.isResidential,
+    sellerYears: state.sellerYears,
+    isSellerOnlyHome: state.isOnlyHome,
+    agencyRate: state.agencyRate,
+    downPayment: price - loanPrincipal,
+    totalInterest: plan.merged.totals.interest,
+  });
+  renderPurchaseCost($('[data-tax-result]'), $('[data-tax-verdict]'), taxCosts);
 
   renderCompare($('#compare-body'), cmp, plan);
 
@@ -791,6 +817,48 @@ function bindEvents() {
   $('[data-debt]').addEventListener('input', () => {
     state.debtWan = readNumber('[data-debt]') || 0;
     renderAll();
+  });
+
+  // 购房税费：任一字段变化都重算整张成本表
+  const taxInputs = [
+    ['[data-down-ratio]', (v) => { state.downRatio = v; }],
+    ['[data-area]', (v) => { state.areaSqm = v; }],
+    ['[data-seller-years]', (v) => { state.sellerYears = v; }],
+  ];
+  taxInputs.forEach(([sel, set]) => {
+    $(sel).addEventListener('input', () => {
+      set(readNumber(sel) || 0);
+      renderAll();
+    });
+  });
+
+  $('[data-only-home]').addEventListener('change', (e) => {
+    state.isOnlyHome = e.target.checked;
+    renderAll();
+  });
+
+  $$('[data-home-count]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      $$('[data-home-count]').forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle('is-active', active);
+        b.setAttribute('aria-checked', String(active));
+      });
+      state.homeCount = Number(btn.dataset.homeCount);
+      renderAll();
+    });
+  });
+
+  $$('[data-property]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      $$('[data-property]').forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle('is-active', active);
+        b.setAttribute('aria-checked', String(active));
+      });
+      state.isResidential = btn.dataset.property === 'residential';
+      renderAll();
+    });
   });
 
   $('[data-prepay-strategy]').addEventListener('click', (event) => {
