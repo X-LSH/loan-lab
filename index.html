@@ -466,6 +466,27 @@
         </section>
       </div>
 
+      <section class="card is-collapsible" data-card="settle">
+        <div class="card-head">
+          <div>
+            <h2>如果我在第 N 年结清，哪种更划算</h2>
+            <p class="card-sub">等额本金总是省利息 —— 它还得快，这是必然的。真正值得算的是代价：前期要多垫多少现金，换回多少利息。</p>
+          </div>
+        </div>
+
+        <div class="settle-bar">
+          <label class="field-label" for="settle-year">计划持有</label>
+          <div class="input-wrap settle-input">
+            <input id="settle-year" class="input num" type="number" min="1" max="30" step="1" value="10" aria-describedby="settle-note" data-settle-year />
+            <span class="input-suffix">年</span>
+          </div>
+          <p class="field-note" id="settle-note" data-settle-note></p>
+        </div>
+
+        <div class="settle-grid" data-settle-result></div>
+        <div class="chart-box" id="chart-settle-diff"></div>
+      </section>
+
       <section class="card is-collapsible">
         <div class="card-head">
           <div>

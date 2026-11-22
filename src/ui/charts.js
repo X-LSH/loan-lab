@@ -805,3 +805,88 @@ export function renderPayoffChart(container, payoff) {
       `逐年数字见「逐年结清测算」表格。`,
   );
 }
+
+/**
+ * 结清时点差额曲线：横轴持有年数，纵轴「等额本金比等额本息省多少」。
+ *
+ * 曲线单调上升 —— 持有越久优势越大，因为两者的利息差距主要产生在还款后半程。
+ * 这也解释了为什么「打算短期结清」时换等额本金能省的钱其实很有限。
+ */
+export function renderSettleDiffChart(container, curve) {
+  if (!container || !curve?.length) return;
+
+  const W = 900;
+  const H = 260;
+  const pad = { top: 22, right: 26, bottom: 34, left: 66 };
+  const innerW = W - pad.left - pad.right;
+  const innerH = H - pad.top - pad.bottom;
+
+  const maxDiff = Math.max(...curve.map((p) => p.diff), 1);
+  const maxMonth = curve.at(-1).month || 1;
+
+  const xOf = (m) => pad.left + (m / maxMonth) * innerW;
+  const yOf = (v) => pad.top + innerH - (v / maxDiff) * innerH;
+
+  // 轴标签用万元，避免长数字挤在一起
+  const wan = (cents) => {
+    const v = cents / 100 / 10000;
+    return v >= 10 ? v.toFixed(0) : v.toFixed(1);
+  };
+
+  const ticks = 4;
+  const parts = [];
+
+  for (let i = 0; i <= ticks; i += 1) {
+    const v = (maxDiff / ticks) * i;
+    const y = yOf(v);
+    parts.push(
+      `<line x1="${pad.left}" y1="${y.toFixed(1)}" x2="${W - pad.right}" y2="${y.toFixed(1)}" class="${i === 0 ? 'grid-base' : 'grid-line'}"/>`,
+    );
+    parts.push(
+      `<text x="${pad.left - 10}" y="${(y + 3.5).toFixed(1)}" class="axis-text" text-anchor="end">${wan(v)} 万</text>`,
+    );
+  }
+
+  const years = Math.max(1, Math.round(maxMonth / 12));
+  for (let y = 0; y <= years; y += years > 20 ? 5 : 3) {
+    parts.push(
+      `<text x="${xOf(y * 12).toFixed(1)}" y="${H - 12}" class="axis-text" text-anchor="middle">${y}</text>`,
+    );
+  }
+
+  const pts = curve.map((p) => `${xOf(p.month).toFixed(1)},${yOf(p.diff).toFixed(1)}`).join(' ');
+  const baseY = yOf(0).toFixed(1);
+
+  const markup =
+    `<svg viewBox="0 0 ${W} ${H}" role="presentation">` +
+    `<defs><linearGradient id="grad-settle-diff" x1="0" y1="0" x2="0" y2="1">` +
+    `<stop offset="0%" stop-color="var(--saved)" stop-opacity="0.3"/>` +
+    `<stop offset="100%" stop-color="var(--saved)" stop-opacity="0"/>` +
+    `</linearGradient></defs>` +
+    parts.join('') +
+    `<polygon points="${pad.left},${baseY} ${pts} ${(W - pad.right).toFixed(1)},${baseY}" fill="url(#grad-settle-diff)"/>` +
+    `<polyline points="${pts}" fill="none" stroke="var(--saved)" stroke-width="1.8" stroke-linejoin="round"/>` +
+    curve
+      .map(
+        (p) =>
+          `<circle cx="${xOf(p.month).toFixed(1)}" cy="${yOf(p.diff).toFixed(1)}" r="2.4" fill="var(--saved)"/>`,
+      )
+      .join('') +
+    `</svg>`;
+
+  const wrap = document.createElement('div');
+  wrap.innerHTML = markup;
+  const svgEl = wrap.firstElementChild;
+
+  const last = curve.at(-1);
+  const half = curve.find((p) => p.month >= maxMonth / 2) ?? last;
+
+  mount(
+    container,
+    svgEl,
+    '等额本金相对等额本息省下的总支出随持有年数变化的曲线',
+    `曲线单调上升。持有 ${Math.round(half.month / 12)} 年时省 ${fmtYuan(half.diff)} 元，` +
+      `持有到期满（${Math.round(last.month / 12)} 年）时省 ${fmtYuan(last.diff)} 元。` +
+      `省得越多说明持有越久；打算短期结清的话，换方式的收益有限。`,
+  );
+}

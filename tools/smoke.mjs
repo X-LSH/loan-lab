@@ -97,8 +97,8 @@ try {
   const termNote = await text('#total-amount-note');
   check('合计贷款金额换算正确', termNote.includes('100.00 万元'), termNote);
 
-  check('五个图表已绘制（月供 / 构成 / 结清 / 月供对比 / 利息对比）',
-    (await count('.chart-box svg')) === 5, String(await count('.chart-box svg')));
+  check('六个图表已绘制（月供 / 构成 / 结清 / 月供对比 / 利息对比 / 结清差额）',
+    (await count('.chart-box svg')) === 6, String(await count('.chart-box svg')));
 
   /* ---------------------------------------------- 2. 还款计划 */
   check('年度表默认展开 30 行', (await count('#schedule-table tbody tr')) === 30);
@@ -503,6 +503,27 @@ try {
   check('已设置 accent-color',
     (await cdp.eval(`getComputedStyle(document.body).accentColor`)) !== 'auto');
 
+  /* ---------- 结清时点分析 ---------- */
+  await cdp.click('.tab[data-tab="compare"]');
+  await settle(620);
+  check('结清分析三格数据齐全',
+    (await count('[data-settle-result] .settle-cell')) === 3,
+    String(await count('[data-settle-result] .settle-cell')));
+
+  const diffAt10 = await text('[data-settle-result] .settle-cell:first-child .v');
+  await cdp.setInput('[data-settle-year]', '5');
+  await settle(420);
+  const diffAt5 = await text('[data-settle-result] .settle-cell:first-child .v');
+  const num = (s) => parseFloat(String(s).replace(/[^0-9.]/g, '')) || 0;
+  check('缩短持有年限后省下的钱变少',
+    num(diffAt5) < num(diffAt10) && num(diffAt5) > 0,
+    `${diffAt10} → ${diffAt5}`);
+
+  await cdp.setInput('[data-settle-year]', '10');
+  await settle(420);
+  check('恢复年限后差额回到原值',
+    Math.abs(num(await text('[data-settle-result] .settle-cell:first-child .v')) - num(diffAt10)) < 1);
+
   /* ---------- 凭证主题 ---------- */
   await cdp.eval(`document.querySelector('[data-theme-set="voucher"]').click()`);
   await settle(680);
@@ -548,7 +569,7 @@ try {
     await cdp.eval(`document.querySelector('[data-card="payment"] .card-collapse').getAttribute('aria-expanded') === 'true'`));
 
   /* ---------- 图表的长描述与数据表替代 ---------- */
-  const charts = ['chart-payment', 'chart-composition', 'chart-payoff', 'chart-cmp-payment', 'chart-cmp-interest'];
+  const charts = ['chart-payment', 'chart-composition', 'chart-payoff', 'chart-cmp-payment', 'chart-cmp-interest', 'chart-settle-diff'];
   const descOk = await cdp.eval(`(() => {
     const ids = ${JSON.stringify(charts)};
     return ids.every((id) => {

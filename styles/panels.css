@@ -604,6 +604,101 @@ input[type="range"].slider::-moz-range-thumb {
   color: var(--saved-ink);
 }
 
+/* ---------------- 结清时点分析 ---------------- */
+.settle-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line-hair);
+}
+
+.settle-input {
+  width: 128px;
+}
+
+.settle-bar .field-note {
+  margin: 0 0 3px;
+  flex: 1 1 220px;
+}
+
+/* 三格票据式对照：不留间隙，用竖线分隔 */
+.settle-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.settle-cell {
+  padding: 13px 16px;
+  border-right: 1px solid var(--line-hair);
+}
+
+.settle-cell:last-child {
+  border-right: none;
+}
+
+.settle-cell .k {
+  font-size: var(--fs-cap);
+  color: var(--ink-3);
+  letter-spacing: var(--tracking-caps);
+}
+
+.settle-cell .v {
+  margin-top: 5px;
+  font-size: var(--fs-title-2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.settle-cell .s {
+  margin-top: 3px;
+  font-size: var(--fs-cap2);
+  color: var(--ink-3);
+}
+
+.settle-cell.is-saved .v {
+  color: var(--saved-ink);
+}
+
+/* 「多垫的现金」是一种代价，不是错误 —— 不用红色，避免语义误导 */
+.settle-cell.is-warn .v {
+  color: var(--accent-ink);
+}
+
+/* 结论条：把「多垫」与「省下」的对比说成一句人话 */
+.settle-verdict {
+  margin: 0 0 16px;
+  padding: 11px 14px;
+  border-left: 2px solid var(--accent);
+  background: var(--accent-soft);
+  font-size: var(--fs-sub);
+  line-height: 1.65;
+  color: var(--ink-2);
+}
+
+@media (max-width: 720px) {
+  .settle-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settle-cell {
+    border-right: none;
+    border-bottom: 1px solid var(--line-hair);
+  }
+
+  .settle-cell:last-child {
+    border-bottom: none;
+  }
+}
+
 .cmp-list {
   margin: 0;
 }

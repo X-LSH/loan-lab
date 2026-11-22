@@ -6,6 +6,7 @@
  */
 
 import { formatCents } from '../core/money.js';
+import { compareAtMonth, settleDiffCurve, tradeoff, cumulativeExtraCash } from '../core/breakeven.js';
 
 const yuan = (cents) => formatCents(cents);
 const wan = (cents) => (cents / 100 / 10000).toFixed(2);
@@ -234,4 +235,61 @@ export function renderCompare(el, cmp, plan) {
       ${isCombo ? '<br />组合贷下这是「两笔同时切换」的假设性对比，实际可与银行分别约定。' : ''}
     </div>
   `;
+}
+
+/**
+ * 结清时点分析：把「省下的利息」和「前期多垫的现金」放在一起看。
+ * 返回曲线数据，供差额图绘制。
+ */
+export function renderSettleAnalysis(el, cmp, { year = 10, penaltyOpts = {} } = {}) {
+  const a = cmp.equalPayment.schedule;
+  const b = cmp.equalPrincipal.schedule;
+  if (!a || !b) {
+    el.replaceChildren();
+    return null;
+  }
+
+  const totalYears = Math.max(1, Math.round(a.rows.length / 12));
+  const holdYear = Math.min(Math.max(Math.round(year), 1), totalYears);
+  const at = compareAtMonth(a, b, holdYear * 12, penaltyOpts);
+  const t = tradeoff(a, b);
+
+  const cheaper =
+    at.cheaper === 'B' ? '等额本金' : at.cheaper === 'A' ? '等额本息' : '两者相同';
+  // 前两格都按「持有到第 N 年」的口径算，第三格才回到全周期作对照
+  const extraToDate = cumulativeExtraCash(a, b, holdYear * 12);
+  const gain = Math.abs(at.diff);
+
+  // 关键判断：多垫的现金 vs 省下的钱，谁更多
+  const verdict =
+    extraToDate > gain
+      ? `多垫 ${yuan(extraToDate)} 元，只省下 ${yuan(gain)} 元 —— 打算 ${holdYear} 年内结清的话，换成等额本金并不划算。`
+      : `多垫 ${yuan(extraToDate)} 元，省下 ${yuan(gain)} 元 —— 持有到这个时点，等额本金的置换是划算的。`;
+
+  el.innerHTML = `
+    <div class="settle-cell">
+      <div class="k">第 ${holdYear} 年结清，总支出差</div>
+      <div class="v">${yuan(gain)}</div>
+      <div class="s">${cheaper}${at.cheaper === 'TIE' ? '' : '更省'}</div>
+    </div>
+    <div class="settle-cell is-warn">
+      <div class="k">同期多垫的现金</div>
+      <div class="v">${yuan(extraToDate)}</div>
+      <div class="s">首月多 ${yuan(t.peakGap)}，之后逐月递减</div>
+    </div>
+    <div class="settle-cell is-saved">
+      <div class="k">还到期满能省的利息</div>
+      <div class="v">${yuan(t.savedInterest)}</div>
+      <div class="s">全周期对照（${totalYears} 年）</div>
+    </div>
+    <p class="settle-verdict">${verdict}</p>
+  `;
+
+  return {
+    year: holdYear,
+    totalYears,
+    at,
+    tradeoff: t,
+    curve: settleDiffCurve(a, b, { penaltyOpts }),
+  };
 }

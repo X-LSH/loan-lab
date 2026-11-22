@@ -121,6 +121,8 @@ export function compareMethods({ months, loans }) {
       totalInterest: ep.summary.totalInterest,
       totalPayment: ep.summary.totalPayment,
       rows: ep.rows,
+      /** 完整排期（含 totals 与 summary），供结清时点分析使用 */
+      schedule: ep,
     },
     equalPrincipal: {
       method: METHOD.EQUAL_PRINCIPAL,
@@ -130,6 +132,7 @@ export function compareMethods({ months, loans }) {
       totalInterest: epr.summary.totalInterest,
       totalPayment: epr.summary.totalPayment,
       rows: epr.rows,
+      schedule: epr,
     },
     delta: {
       interestSaved: ep.summary.totalInterest - epr.summary.totalInterest,

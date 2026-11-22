@@ -26,6 +26,7 @@ node tools/serve.mjs          # 打开 http://127.0.0.1:8080
 | 提前结清 | 第 0~N 年每个节点：结清现金、全周期总支出、省下利息、省息比例 |
 | 部分提前还款 | 还一部分后继续供，可选缩期或降月供，给出节省利息、违约金、新期数 |
 | 方式对比 | 月供压力曲线 + 累计利息曲线，直观看出省息从哪来、前期差多少 |
+| 结清时点分析 | 指定「打算 N 年后结清」，对比两种方式的总支出差、同期多垫的现金，并给出「这笔置换划不划算」的判断 |
 | 卡片模块化 | 结果卡片可折叠（状态记忆），图表可切换形态（折线/面积、堆叠/百分比） |
 
 ## 计算规则
@@ -272,8 +273,8 @@ npx -y modern-web-guidance@latest retrieve dark-mode
 ## 测试
 
 ```bash
-node --test tests/core.test.mjs tests/quota.test.mjs tests/prepay.test.mjs  # 61 项
-node tools/smoke.mjs       # 122 项：真实浏览器加载与交互
+node --test tests/core.test.mjs tests/quota.test.mjs tests/prepay.test.mjs tests/breakeven.test.mjs  # 71 项
+node tools/smoke.mjs       # 128 项：真实浏览器加载与交互
 node tools/a11y.mjs        # axe-core：4 主题 × 3 视图的 WCAG A/AA 扫描
 node tools/visual.mjs      # 视觉基线比对（尺寸、字号、颜色是否漂移）
 node tools/screenshot.mjs  # 输出到 docs/screenshots/
@@ -331,10 +332,8 @@ Playwright 缓存中的 `chrome-headless-shell`；也可通过 `APP_URL` / `CDP_
   需要评估「LPR 涨到多少会怎样」这类问题时，用逐年编辑器填入压力情景即可。
 - **公积金不走 LPR**：公积金按国家统一利率，通常也是次年 1 月 1 日统一调整，
   本工具按固定利率处理，可直接填最新值。
-- **不含税费**：契税、评估费、保险费、提前还款手续费等不计入。
+- **不含税费**：契税、评估费、保险费等不计入购房总成本（贷款利息本身是算的）。
 - **违约金为简化模型**：按剩余本金乘比例，支持免罚期；不模拟"收取 X 个月利息"等按银行差异巨大的规则。
-- **部分提前还款未实现**：目前只支持一次性结清。若要支持"还一部分后缩短年限或降低月供"，
-  需要以结清点为新起点重建摊销表，`core/` 已按可重入的方式组织，扩展时不必改动现有函数。
 - **组合贷期限共享**：两笔共用同一期限，符合银行对组合贷的要求；`mergeSchedules` 本身支持
   期限不一致的表合并，只是界面暂未暴露该入口。
 

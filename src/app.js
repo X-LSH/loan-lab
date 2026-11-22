@@ -12,9 +12,9 @@ import {
   FUND_CITIES, DEFAULT_CITY_ID, getCity, resolveQuota, describeQuota,
 } from './core/quota.js';
 import { buildPrepayPlan, comparePrepay, PREPAY_STRATEGY } from './core/prepay.js';
-import { renderKpis, mountPayoffHighlight, updatePayoffHighlight, renderCompare } from './ui/summary.js';
+import { renderKpis, mountPayoffHighlight, updatePayoffHighlight, renderCompare, renderSettleAnalysis } from './ui/summary.js';
 import { renderMonthlyTable, renderYearlyTable, renderPayoffTable, renderSplitNote } from './ui/tables.js';
-import { renderStackedBars, renderPayoffChart, renderPaymentChart, renderPaymentCompareChart, renderInterestCompareChart } from './ui/charts.js';
+import { renderStackedBars, renderPayoffChart, renderPaymentChart, renderPaymentCompareChart, renderInterestCompareChart, renderSettleDiffChart } from './ui/charts.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -40,6 +40,8 @@ const state = {
   prepayMonth: 120,
   prepayAmountWan: 30,
   prepayStrategy: PREPAY_STRATEGY.SHORTEN,
+  // 结清时点分析
+  settleYear: 10,
 };
 
 let plan = null;
@@ -156,6 +158,21 @@ function renderAll(years, { animate = false } = {}) {
   renderScheduleTable();
   renderPayoffTable($('#payoff-table'), plan.payoff, { selectedMonth: state.selectedMonth });
   renderCompare($('#compare-body'), cmp, plan);
+
+  // 结清时点分析：把「省下的利息」与「前期多垫的现金」放在一起看
+  const settle = renderSettleAnalysis($('[data-settle-result]'), cmp, {
+    year: state.settleYear,
+    penaltyOpts: {
+      penaltyRate: plan.penaltyRate ?? 0,
+      penaltyFreeMonths: plan.penaltyFreeMonths ?? 12,
+    },
+  });
+  if (settle) {
+    const skipped = Math.max(0, settle.totalYears - settle.year);
+    $('[data-settle-note]').textContent =
+      `已还 ${settle.year * 12} 期，剩下的 ${skipped} 年不还 —— 差额已含违约金`;
+    renderSettleDiffChart($('#chart-settle-diff'), settle.curve);
+  }
 }
 
 function redrawCharts() {
@@ -744,6 +761,18 @@ function bindEvents() {
     renderPrepay({ validate: false });
   });
   $('[data-prepay-amount]').addEventListener('blur', () => renderPrepay({ validate: true }));
+
+  // 结清时点：输入时实时更新，失焦时把越界的值拉回区间
+  $('[data-settle-year]').addEventListener('input', () => {
+    state.settleYear = Math.min(Math.max(Math.round(readNumber('[data-settle-year]')) || 10, 1), 30);
+    renderAll();
+  });
+  $('[data-settle-year]').addEventListener('blur', () => {
+    const clamped = Math.min(Math.max(Math.round(readNumber('[data-settle-year]')) || 10, 1), 30);
+    state.settleYear = clamped;
+    $('[data-settle-year]').value = String(clamped);
+    renderAll();
+  });
 
   $('[data-prepay-strategy]').addEventListener('click', (event) => {
     const btn = event.target.closest('[data-strategy]');
